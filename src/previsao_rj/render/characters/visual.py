@@ -279,7 +279,7 @@ def varanda(condicao="sol"):
         pts.append([W / 2 + 1, base_y + dy - 2, 0])
         g.add(Polygon(*pts, fill_color=cor, fill_opacity=1, stroke_width=0))
 
-    piso_y = -H / 2 + 2.2
+    piso_y = -3.15  # plano de apoio ajustado ao enquadramento de corpo inteiro do RJ
     g.add(Rectangle(width=W + 2, height=4.6, fill_color="#9c8b7a", fill_opacity=1,
                     stroke_width=0).move_to([0, piso_y - 2.3, 0]))
     gc = VGroup()
@@ -1365,7 +1365,7 @@ def quintal_varal(condicao="sol", n_pecas=5):
     # chão de grama
     grama, grama_esc = (("#5c7f4c", "#4b6a3e") if entardecer
                         else ("#6f9b58", "#5b8248"))
-    piso_y = -H / 2 + 2.6
+    piso_y = -3.15  # plano de apoio ajustado ao enquadramento de corpo inteiro do RJ
     g.add(Rectangle(width=W + 2, height=5.4, fill_color=grama, fill_opacity=1,
                     stroke_width=0).move_to([0, piso_y - 2.7, 0]))
     g.add(Rectangle(width=W + 2, height=0.10, fill_color=grama_esc, fill_opacity=1,

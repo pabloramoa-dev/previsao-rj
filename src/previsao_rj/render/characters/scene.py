@@ -165,7 +165,9 @@ class Piloto(MovingCameraScene):
             excesso = prova.get_top()[1] - TETO_CENA
             if excesso > 0:
                 G.shift(DOWN * excesso)
-        self.add(G)
+        sombra = Ellipse(width=1.7, height=0.18, fill_color=BLACK, fill_opacity=0.18, stroke_width=0)
+        sombra.move_to([0, G.get_bottom()[1] + 0.04, 0])
+        self.add(sombra, G)
         P.conectar_bracos(v)
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
         v['boca'].set_stroke(opacity=0)
