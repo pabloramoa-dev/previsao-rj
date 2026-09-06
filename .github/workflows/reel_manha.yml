@@ -1,0 +1,14 @@
+name: Reel da manhã — Previsão RJ (AUTOMAÇÃO DESATIVADA)
+# ATIVAÇÃO SOMENTE APÓS PRIMEIRO REEL MANUAL REAL APROVADO.
+on:
+  # schedule:
+  #   - cron: "35 9 * * 1-5"  # 06:35 America/Sao_Paulo; validar horário legal antes de ativar
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guard:
+    if: vars.AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "AUTOMAÇÃO DESATIVADA. Use publicar_manual.yml até o go-live."

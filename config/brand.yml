@@ -1,0 +1,16 @@
+brand:
+  name: "PREVISÃO RJ"
+  handle: "@previsaorj"
+  promise: "O tempo do Rio para decidir seu dia."
+  timezone: "America/Sao_Paulo"
+  colors:
+    ink: "#0B1F33"
+    sky: "#5BB9F5"
+    sun: "#FFD34E"
+    rain: "#5E8DFF"
+    alert: "#E94B4B"
+    white: "#FFFFFF"
+  safe_area:
+    top_px: 150
+    bottom_px: 360
+    side_px: 90

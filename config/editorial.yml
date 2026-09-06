@@ -1,0 +1,11 @@
+editorial:
+  base_format: "rio_antes_de_sair"
+  target_duration_seconds: [22, 35]
+  launch_feed_posts_per_week: [8, 10]
+  hooks:
+    - contrast
+    - useful_alert
+    - question
+    - ranking
+  automation_enabled: false
+  publish_requires_manual_gate: true

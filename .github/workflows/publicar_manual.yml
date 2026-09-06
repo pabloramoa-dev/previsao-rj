@@ -1,0 +1,89 @@
+name: Reel manual — Previsão RJ
+on:
+  workflow_dispatch:
+    inputs:
+      fonte:
+        description: "Fonte do Reel"
+        type: choice
+        options: [fixture, live]
+        default: fixture
+      publicar:
+        description: "Publicar no @previsaorj? Desmarcado = somente artifact"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: previsao-rj-publicacao
+  cancel-in-progress: false
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Dependências
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak
+          pip install -r requirements/test.txt
+      - name: Isolamento e testes
+        run: |
+          python scripts/isolation_guard.py
+          python -m pytest -q
+      - name: Bloquear publicação com fixture
+        if: ${{ inputs.publicar && inputs.fonte != 'live' }}
+        run: |
+          echo "PUBLICAÇÃO BLOQUEADA: dados de fixture nunca vão para o feed."
+          exit 1
+      - name: Coletar dados ao vivo
+        if: ${{ inputs.fonte == 'live' }}
+        run: python -m scripts.collect_live output/snapshot.json
+      - name: Usar fixture técnica
+        if: ${{ inputs.fonte == 'fixture' }}
+        run: cp tests/fixtures/snapshot_rj.json output/snapshot.json
+      - name: Render
+        run: python -m src.previsao_rj.render.test_reel --fixture output/snapshot.json --out output/REEL.mp4
+      - name: Legenda
+        run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
+      - name: QA
+        run: python scripts/qa_video.py output/REEL.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: previsao-rj-reel-${{ github.run_id }}
+          path: output/
+          retention-days: 14
+      - name: Verificar Meta e conta de destino
+        if: ${{ inputs.publicar }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
+          EXPECTED_IG_USERNAME: previsaorj
+        run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print('destino:',verify_destination().get('username'))"
+      - name: Exigir repositório público para Release usado pela Meta
+        if: ${{ inputs.publicar }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(gh repo view "${{ github.repository }}" --json visibility -q .visibility)
+          test "$V" = "PUBLIC" || { echo "PUBLICAÇÃO BLOQUEADA: Release de repo privado não é URL pública para a Meta."; exit 1; }
+      - name: Hospedar MP4 em Release temporário
+        if: ${{ inputs.publicar }}
+        id: media
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pilot-${{ github.run_id }}"
+          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Piloto controlado @previsaorj"
+          echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
+      - name: Publicar Reel controlado
+        if: ${{ inputs.publicar }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
+          EXPECTED_IG_USERNAME: previsaorj
+        run: python -m src.previsao_rj.publish.cli --video-url "${{ steps.media.outputs.url }}" --caption-file output/LEGENDA.txt --publish

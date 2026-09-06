@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.venv/
+output/*.mp4
+output/*.wav
+output/*.json
+*.log
+.DS_Store

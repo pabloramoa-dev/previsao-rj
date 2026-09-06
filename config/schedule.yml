@@ -1,0 +1,6 @@
+timezone: "America/Sao_Paulo"
+schedule_enabled: false
+slots:
+  weekday_morning: "06:35"
+  friday_weekend: "17:45"
+  saturday_beach: "07:30"

@@ -1,0 +1,7 @@
+manim==0.20.1
+numpy>=2.0,<3
+scipy>=1.14,<2
+kokoro-onnx>=0.4,<1
+soundfile>=0.12,<1
+requests>=2.32,<3
+PyYAML>=6,<7
