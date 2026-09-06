@@ -52,7 +52,7 @@ FIM = SEGS[-1]['fim']
 Y_PAINEL = 4.5
 Y_SELO = 3.95
 Y_RESUMO = 1.2
-Y_LEGENDA = -2.2
+Y_LEGENDA = -4.45
 TETO_CENA = 3.25
 LIMPO = 0.3
 ABERTURA = 0.18
@@ -159,19 +159,17 @@ class Piloto(MovingCameraScene):
         else:
             v = P.ranzinza()
         G = v['grupo']
-        G.scale(1.3).move_to([0, -2.4 if PERSONAGEM == 'maria' else -1.2, 0])
+        G.scale(1.1).move_to([0, -0.55, 0])
         if COM_GUARDA_CHUVA and CENARIO in ('chuva', 'tempestade'):
             prova = P.guarda_chuva(v)
             excesso = prova.get_top()[1] - TETO_CENA
             if excesso > 0:
                 G.shift(DOWN * excesso)
         self.add(G)
-        if CONT.get('demo'):
-            self.add(Text('TESTE DE PERSONAGEM • SEM PREVISÃO', font=P.FONTE, font_size=18, color=WHITE).move_to([0, -5.1, 0]))
         P.conectar_bracos(v)
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
         v['boca'].set_stroke(opacity=0)
-        LIP.anexar_lipsync(self, v['boca'], t0=0.0, escala=1.25, deslocamento=DOWN * 0.04)
+        LIP.anexar_lipsync(self, v['boca'], t0=0.0, escala=1.05, deslocamento=DOWN * 0.04)
         if PERSONAGEM == 'maria':
             jw = janelas('apontar')
             if jw:
@@ -231,7 +229,7 @@ class Piloto(MovingCameraScene):
                 continue
             ini = max(SEGS[i]['ini'], ABERTURA)
             fim = SEGS[i]['fim'] if i + 1 < len(BATIDAS) else FIM - LIMPO
-            legs += P.legenda_karaoke(b['legenda'], ini, fim, y=Y_LEGENDA, fs=48)
+            legs += P.legenda_karaoke(b['legenda'], ini, fim, y=Y_LEGENDA, fs=42)
         self.add(P.trilha_temporal(legs, pop=0.1))
         jn = [(SEGS[i]['ini'], SEGS[i]['fim']) for i, b in enumerate(BATIDAS) if i < len(SEGS) and (b.get('dados') or {}).get('nevoa')]
         if jn and CENARIO != 'frio':

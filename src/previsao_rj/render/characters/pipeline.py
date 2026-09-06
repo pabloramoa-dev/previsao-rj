@@ -28,11 +28,13 @@ def demo_beats(character):
             beat('Olha só! A Dona Maria chegou ao Previsão Rio.'),
             beat('Eu já trouxe os óculos e o meu avental de flores.', acao='apontar'),
             beat('Até o velho veio junto. Só espero que ele reclame menos!'),
+            beat('Agora me conta: você reconheceu o meu jeitinho e a minha voz?'),
         ]
     return [
         beat('Ora, vejam só! O Ranzinza chegou ao Previsão Rio.'),
         beat('Trouxe a minha bengala, os meus óculos e a minha paciência.'),
         beat('Paciência pouca, viu? Mas a previsão eu conto direitinho!'),
+        beat('A Dona Maria também está por aqui. Já chegou querendo mandar em tudo!'),
     ]
 
 

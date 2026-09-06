@@ -7,6 +7,11 @@ on:
         type: choice
         options: [fixture, live]
         default: fixture
+      personagem:
+        description: "Personagem e voz original"
+        type: choice
+        options: [ranzinza, maria]
+        default: ranzinza
       publicar:
         description: "Publicar no @previsaorj? Desmarcado = somente artifact"
         type: boolean
@@ -27,8 +32,13 @@ jobs:
       - name: Dependências
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q ffmpeg espeak
-          pip install -r requirements/test.txt
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          mkdir -p ~/.local/share/fonts/poppins
+          for f in Poppins-Bold.ttf Poppins-Regular.ttf; do
+            curl -fsSL --retry 3 -o ~/.local/share/fonts/poppins/$f https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/$f
+          done
+          fc-cache -f
+          pip install -r requirements/test.txt -r requirements/characters.txt
       - name: Isolamento e testes
         run: |
           python scripts/isolation_guard.py
@@ -45,7 +55,7 @@ jobs:
         if: ${{ inputs.fonte == 'fixture' }}
         run: cp tests/fixtures/snapshot_rj.json output/snapshot.json
       - name: Render
-        run: python -m src.previsao_rj.render.test_reel --fixture output/snapshot.json --out output/REEL.mp4
+        run: python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem ${{ inputs.personagem }} --out output/REEL.mp4
       - name: Legenda
         run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
       - name: QA
@@ -87,3 +97,4 @@ jobs:
           META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
           EXPECTED_IG_USERNAME: previsaorj
         run: python -m src.previsao_rj.publish.cli --video-url "${{ steps.media.outputs.url }}" --caption-file output/LEGENDA.txt --publish
+

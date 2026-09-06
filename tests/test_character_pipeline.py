@@ -13,4 +13,4 @@ def test_weather_script_matches_snapshot():
     snapshot = json.loads(Path('tests/fixtures/snapshot_rj.json').read_text())
     rows = [b for b in snapshot_beats(snapshot) if b['tipo'] == 'cidade']
     assert [b['dados']['cidade']['max'] for b in rows] == [29, 31, 35]
-    assert len(demo_beats('maria')) == 3
+    assert len(demo_beats('maria')) == 4
