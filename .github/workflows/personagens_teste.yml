@@ -1,0 +1,61 @@
+name: Teste visual e vozes — Previsão RJ
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/previsao_rj/render/characters/**'
+      - 'requirements/characters.txt'
+      - '.github/workflows/personagens_teste.yml'
+permissions:
+  contents: read
+concurrency:
+  group: teste-personagens-rj-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        personagem: [ranzinza, maria]
+    env:
+      OMP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/previsao_rj_kokoro
+          key: rj-kokoro-v1.0
+      - name: Dependências visuais e de áudio
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          mkdir -p ~/.local/share/fonts/poppins
+          for f in Poppins-Bold.ttf Poppins-Regular.ttf; do
+            curl -fsSL --retry 3 -o ~/.local/share/fonts/poppins/$f https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/$f
+          done
+          fc-cache -f
+          pip install -r requirements/test.txt -r requirements/characters.txt
+      - name: Testes e isolamento
+        run: |
+          python scripts/isolation_guard.py
+          python -m pytest -q
+      - name: Render de demonstração — nunca publica
+        run: python -m src.previsao_rj.render.characters.pipeline --demo --personagem ${{ matrix.personagem }} --out output/personagens/${{ matrix.personagem }}.mp4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: personagem-rj-${{ matrix.personagem }}
+          path: |
+            output/personagens/*.mp4
+            output/personagens/*.png
+            output/personagens/*.json
+            output/personagens/work_*/segs.json
+            output/personagens/work_*/conteudo.json
+          if-no-files-found: warn
+          retention-days: 14

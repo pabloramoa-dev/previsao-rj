@@ -1,0 +1,5 @@
+manim==0.20.1
+numpy
+scipy
+kokoro-onnx
+soundfile
