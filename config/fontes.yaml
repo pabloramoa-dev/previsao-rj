@@ -26,9 +26,9 @@ sources:
     role: principal
     endpoint: "https://api.open-meteo.com/v1/forecast"
     models:
-      primary: ecmwf_ifs025          # ECMWF IFS, base meteorologica do projeto
-      secondary: [gfs_seamless, icon_seamless]
-    resolution_km: 9
+      primary: icon_seamless        # ICON global ~11 km: a grade mais fina que cobre o Rio
+      secondary: [ecmwf_ifs025, gfs_seamless]
+    resolution_km: 11             # ecmwf_ifs025 = 27 km; icon global = 11 km
     timeout_seconds: 25
     retries: 2
     cache_ttl_minutes: 30
