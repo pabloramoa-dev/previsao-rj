@@ -34,6 +34,7 @@ jobs:
           rm -f observations.py open_meteo.py open_meteo_raw.json resolver.py snapshot.py
           rm -f test_confidence.py test_geo_resolver.py test_isolation.py
           rm -f test_locations.py test_snapshot_schema.py
+          rm -rf fase1_payload
 
       - name: Isolamento e testes
         run: |
