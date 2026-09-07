@@ -61,3 +61,34 @@ def test_webhook_signature_account_and_dedup(snapshot,tmp_path):
     assert receive(body,signature,'test-secret','different-account',snapshot,db)==[]
     assert len(receive(body,signature,'test-secret','rj-test',snapshot,db))==1
     assert receive(body,signature,'test-secret','rj-test',snapshot,db)==[]
+
+
+def test_two_day_weekend_script(snapshot):
+    snapshot['forecast']['today']['date']='2026-09-12'
+    snapshot['forecast']['tomorrow']['date']='2026-09-13'
+    text=' '.join(b['fala'] for b in prepare(snapshot,'fim_de_semana')['beats'])
+    assert 'sábado' in text and 'domingo' in text
+
+
+def test_beach_requires_matching_date_and_official_report(snapshot):
+    locs=snapshot['forecast']['today']['locations']
+    for e in locs:e['beach']=False
+    locs[0]['beach']=True;key=locs[0]['id']
+    snapshot['marine']={'status':'ok','data':{'points':{key:{'date':snapshot['forecast']['today']['date'],'wave_height_max':1.2}}}}
+    snapshot['beach_status']={'status':'ok','data':{'points':{key:{'source_url':'https://example.invalid/fixture','valid_until':(now()+timedelta(hours=4)).isoformat(),'classification':'imprópria'}}}}
+    text=' '.join(b['fala'] for b in prepare(snapshot,'vai_dar_praia')['beats'])
+    assert 'imprópria' in text and 'segurança' in text
+    snapshot['marine']['data']['points'][key]['date']='2000-01-01'
+    with pytest.raises(ValueError):prepare(snapshot,'vai_dar_praia')
+
+
+def test_game_has_three_separate_weather_windows(snapshot):
+    start=now().replace(minute=0,second=0,microsecond=0)+timedelta(hours=3)
+    end=start+timedelta(hours=2)
+    loc=snapshot['forecast']['today']['locations'][0]
+    loc['hourly']=[{'time':(start+timedelta(hours=i)).isoformat(),'precipitation_probability':50+i} for i in range(-2,4)]
+    snapshot['events']=[{'verified':True,'name':'Evento fictício de teste','source_url':'https://example.invalid/test','location_id':loc['id'],'start_at':start.isoformat(),'end_at':end.isoformat(),'expires_at':end.isoformat()}]
+    text=' '.join(b['fala'] for b in prepare(snapshot,'vai_ao_jogo')['beats'])
+    assert 'chegada' in text and 'evento' in text and 'saída' in text
+    loc['hourly']=loc['hourly'][:2]
+    with pytest.raises(ValueError):prepare(snapshot,'vai_ao_jogo')

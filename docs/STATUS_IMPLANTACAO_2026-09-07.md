@@ -1,0 +1,51 @@
+# Balanço após análise do documento e do GitHub
+
+Atualização: 07/09/2026. Projeto exclusivo `pabloramoa-dev/previsao-rj`.
+
+O documento recebido foi comparado com os 75 arquivos então existentes na main, os workflows e o snapshot histórico. O novo trabalho implementa as prioridades do balanço; não representa lançamento no Instagram.
+
+## Implementado nesta rodada
+
+- Fallback por campo entre ICON, ECMWF e GFS, alinhado pela data, com modelo/origem/idade registrados. UV ausente no principal é completado sem inventar zero.
+- Contraste regional de temperatura, chuva e rajadas; roteiro uniforme quando não existe contraste térmico. Ausência de observação validada continua valendo zero no critério correspondente.
+- Snapshot 2.1 preserva até sete dias e a série horária por local, com origem por campo. Cache identificado pelos parâmetros completos; idade do cache não desaparece ao gerar novo snapshot.
+- Coletor marítimo consultado ao vivo e ativado para ondas modeladas. Grade efetiva e data acompanham os valores. Balneabilidade e avisos oficiais continuam sendo dependências separadas.
+- Seleção de candidatos, score explicável, veto por confiança/frescor, repetição em sete dias, alternância de apresentadores, deduplicação e expiração da fila local. Histórico agendado passa a gerar a avaliação editorial, sem publicar.
+- Cinco roteiros com validação: Rio antes de sair, Chove onde, Vai dar praia, Fim de semana e Vai ao jogo. Jogo exige evento verificado e cobertura horária de chegada/evento/saída; praia exige boletim por local, origem e validade. Isso não significa que os cinco formatos já tenham aprovação audiovisual.
+- Bira do Tempo, Bia da Orla e Nuvem RJ desenhados em código, com cenários urbano/orla. Bira e Bia usam presets sem o envelhecimento vocal do elenco legado. O motor de narração, lipsync, gestos, legendas e câmera permanece reutilizado.
+- Gerador de Stories 1080×1920 por local. Rascunhos de atendimento geográfico, pergunta para nomes ambíguos e recusa a usar coleta vencida.
+- Núcleo de recepção de webhook com HMAC, filtro de conta, recusa de ecos e deduplicação SQLite. É uma biblioteca local: ainda não existe endpoint público nem envio de mensagens.
+
+## Evidências
+
+- 91 testes locais passaram; compilação e verificação de isolamento passaram.
+- CI dos commits `720d439` e `74d0d74` passou no GitHub.
+- Render de demonstração de Bira/Bia no workflow `34077858519` passou, incluindo QA de resolução, codec, áudio e duração. Frames conferidos visualmente.
+- Coleta expandida: oito localidades, ICON/ECMWF/GFS e mar retornaram dados utilizáveis, sete datas e 24 horários por local/dia. A confiança da coleta foi 67,8/100; não foi artificialmente elevada por observações ausentes.
+- Os roteiros de base, contraste e fim de semana foram preparados com coleta real. Praia/evento também têm testes com fixtures explicitamente fictícias, que não são pauta de produção.
+
+## Pendências reais
+
+1. Aprovação humana dos desenhos e da sonoridade dos presets. Os arquivos são protótipos de revisão. Foram adicionadas cinco expressões e o piscar determinístico. Faltam revisão final dos adereços/cenários e revisão audiovisual dos cinco formatos, inclusive durações específicas.
+2. INMET/CEMADEN: integrar observações efetivas com estação, timestamp e QC. O catálogo INMET respondeu, mas as consultas de leituras feitas nesta rodada retornaram HTTP 204. Não ligamos um coletor sem leituras verificáveis. A confirmação observacional continua indisponível.
+3. INEA/DHN: falta coletor confiável de boletins e avisos, vínculo por praia e regras completas do índice de praia. Ondas do Open-Meteo não substituem esses dados. O índice ponderado do plano ainda não está implementado.
+4. Meta RJ: configurar credenciais próprias, permissões e destino; publicar e validar o primeiro Reel controlado. Nenhuma credencial da outra operação foi usada.
+5. Atendimento: hospedar endpoint, validar eventos reais da conta RJ, configurar private reply/respostas públicas e política de retenção. Os módulos atuais só produzem rascunhos locais.
+6. Editorial/lançamento: ligar a fila ao estado persistente do publicador após a validação Meta, definir cadência aprovada e observar duas semanas de operação. O histórico editorial deve receber apenas publicações realmente confirmadas.
+7. Métricas: coletar watch/share/save reais e executar os testes A/B do plano; ainda não há baseline que sustente uma otimização.
+
+## Como reproduzir sem publicar
+
+```bash
+python -m pytest -q
+python scripts/isolation_guard.py
+python -m scripts.collect_live output/snapshot.json --tier 1
+python -m scripts.editorial_scan output/snapshot.json
+python -m src.previsao_rj.render.stories output/snapshot.json output/stories
+python -m src.previsao_rj.render.characters.pipeline --demo --personagem bira --out output/bira.mp4
+python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem bira --format rio_antes_de_sair --out output/reel_base.mp4
+```
+
+Instalar `requirements/test.txt` e, para os vídeos, `requirements/characters.txt` e as dependências de sistema do workflow `personagens_teste.yml`. Os agendamentos de publicação permanecem desativados, como exigido pelo plano até o primeiro Reel real aprovado. Apenas a coleta de dados permanece agendada.
+
+Referências primárias consultadas: [Open-Meteo Marine](https://open-meteo.com/en/docs/marine-weather-api), [INMET — estações automáticas](https://portal.inmet.gov.br/servicos/esta%C3%A7%C3%B5es-autom%C3%A1ticas), [INMET — acesso aos dados](https://portal.inmet.gov.br/noticias/saiba-como-acessar-os-dados-meteorol%C3%B3gicos-dispon%C3%ADveis-no-site-do-inmet).

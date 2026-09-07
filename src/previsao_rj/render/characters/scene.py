@@ -160,7 +160,8 @@ class Piloto(MovingCameraScene):
             self.add(cen['grupo'])
             P.animar_cenario(self, cen, CENARIO, calor=CALOR, duracao=FIM)
         if PERSONAGEM in ('bira', 'bia'):
-            v = RJ.presenter(PERSONAGEM)
+            v = RJ.expression(RJ.presenter(PERSONAGEM), CONT.get('expressao','atenta'))
+            RJ.blink(v)
         elif PERSONAGEM == 'maria':
             v = P.dona_maria()
         else:

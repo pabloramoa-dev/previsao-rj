@@ -2,6 +2,9 @@
 from manim import *
 import numpy as np
 
+config.frame_width = 8.0
+config.frame_height = 14.222
+
 INK = '#122E43'
 TEAL = '#007F87'
 YELLOW = '#FFD166'
@@ -62,3 +65,50 @@ def backdrop(kind='urbano'):
     floor = Rectangle(width=9,height=4.1,fill_color='#E8D9B8' if kind=='orla' else '#BBCAD0',fill_opacity=1,stroke_width=0).move_to([0,-5.2,0])
     rail = VGroup(Line([-4,-2.25,0],[4,-2.25,0],color=INK,stroke_width=6),*[Line([x,-2.25,0],[x,-3.15,0],color=INK,stroke_width=5) for x in [-3,-1.5,0,1.5,3]])
     return VGroup(bg,sea,hills,floor,rail)
+
+
+EXPRESSIONS = ('neutra', 'atenta', 'desconfiada', 'animada', 'preocupada')
+
+
+def expression(character, mood='neutra'):
+    """Expressão baseada na geometria atual; não acumula rotações."""
+    if mood not in EXPRESSIONS: raise ValueError('Expressão desconhecida')
+    center = character['cab'].get_center()
+    scale = character['cab'].width / 1.72
+    slopes = {'neutra':(.03,.03), 'atenta':(.03,-.03), 'desconfiada':(-.15,-.04),
+              'animada':(.12,-.12), 'preocupada':(.14,-.14)}[mood]
+    for side,x,slope in zip(('E','D'),(-.34,.34),slopes):
+        y = .56 if mood in {'atenta','animada'} else .42
+        character['sob'+side].become(Line(center+np.array([x-.16,y-slope/2,0])*scale,
+            center+np.array([x+.16,y+slope/2,0])*scale,stroke_color=INK,stroke_width=7))
+    angle = -.9 if mood=='preocupada' else 1.5 if mood=='animada' else .6
+    character['boca'].become(ArcBetweenPoints(center+np.array([-.22,-.46,0])*scale,
+        center+np.array([.22,-.46,0])*scale,angle=angle,stroke_color=INK,stroke_width=5))
+    return character
+
+
+def blink(character, period=4.2):
+    """Piscar determinístico; fator absoluto evita deformação acumulada."""
+    for key in ('oe','od'):
+        state={'t':0., 'factor':1.}
+        def update(eye,dt,state=state):
+            state['t']+=dt
+            phase=state['t']%period
+            f=max(.08,abs(phase-.12)/.12) if phase<.24 else 1.
+            eye.stretch(f/state['factor'],1,about_point=eye.get_center())
+            state['factor']=f
+        character[key].add_updater(update)
+
+
+class CastSheet(Scene):
+    def construct(self):
+        self.camera.background_color='#D7EBEF'
+        self.add(Text('ELENCO PREVISÃO RJ',font='Poppins',font_size=36,color=INK).move_to([0,6.5,0]))
+        for column,name in enumerate(('bira','bia')):
+            x=-1.8 if column==0 else 1.8
+            self.add(Text('Bira do Tempo' if name=='bira' else 'Bia da Orla',font='Poppins',font_size=23,color=INK).move_to([x,5.95,0]))
+            for i,mood in enumerate(EXPRESSIONS):
+                v=expression(presenter(name),mood)
+                v['grupo'].scale(.34).move_to([x,4.75-i*2.25,0])
+                assert v['grupo'].width < 3.2 and v['grupo'].height < 2.0
+                self.add(v['grupo'],Text(mood.upper(),font='Poppins',font_size=17,color=INK).move_to([x,3.65-i*2.25,0]))

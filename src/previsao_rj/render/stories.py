@@ -1,5 +1,6 @@
 """Cards por local em 1080x1920, somente geração de arquivos."""
 import argparse
+from datetime import datetime
 import json
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -19,7 +20,7 @@ def generate(snapshot, destination, reference=None):
         name=loc['name'];size=66
         while d.textbbox((0,0),name,font=font(size))[2]>840: size-=2
         d.text((112,345),name,font=font(size),fill='#122E43')
-        d.text((112,445),snapshot['forecast']['today'].get('date','HOJE'),font=font(35),fill='#007F87')
+        d.text((112,445),datetime.fromisoformat(snapshot['forecast']['today']['date']).strftime('%d/%m/%Y'),font=font(35),fill='#007F87')
         def val(key,unit): return f'{loc[key]}{unit}' if loc.get(key) is not None else 'Indisponível'
         for y,label,value in [(605,'MÍNIMA / MÁXIMA',val('min_c','°')+' / '+val('max_c','°')),
                               (870,'PROBABILIDADE DE CHUVA',val('rain_probability_pct','%')),
@@ -29,7 +30,7 @@ def generate(snapshot, destination, reference=None):
             while d.textbbox((0,0),value,font=font(size))[2]>840:size-=2
             d.text((112,y+60),value,font=font(size),fill='#122E43')
         d.text((112,1450),'Chuva pode ocorrer em intervalos.',font=font(32),fill='#122E43')
-        d.text((80,1670),'Atualizado: '+snapshot['generated_at'],font=font(25),fill='white')
+        d.text((80,1670),'Atualizado: '+datetime.fromisoformat(snapshot['generated_at']).strftime('%d/%m às %H:%M'),font=font(25),fill='white')
         d.text((80,1730),'Confira a previsão antes de sair.',font=font(34),fill='white')
         path=out/(loc['id']+'.png');img.save(path);results.append(str(path))
     return results

@@ -47,7 +47,10 @@ def candidates(snapshot, reference=None):
         item = c[metric]
         if item['relevant']:
             pair = [e for e in locs if e['id'] in {item['low']['id'], item['high']['id']}]
-            add('chove_onde', topic, pair, 5, 4, 5, 5, extra={'contrast': item})
+            high = item['high']['value']
+            urgency = (5 if high >= 70 else 4 if high >= 45 else 2) if metric == 'gust' else (4 if high >= 35 else 2) if metric == 'temperature' else 3
+            strength = 5 if item['spread'] >= item['threshold'] * 2 else 3
+            add('chove_onde', topic, pair, 5, urgency, strength, 3, extra={'contrast': item})
     windows = [e for e in locs if e.get('rain_window') and _number(e.get('rain_mm')) and e['rain_mm'] >= 1]
     if windows and not c['rain']['relevant']:
         add('chove_onde', 'janela_chuva', windows, 4, 4, 0, 4)
@@ -61,7 +64,9 @@ def candidates(snapshot, reference=None):
     weekend = [b for b in day_blocks if stamp(b['date'] + 'T12:00:00-03:00').weekday() >= 5]
     if len({b['date'] for b in weekend}) >= 2:
         add('fim_de_semana', 'fim_de_semana', valid, 4, 3, 3 if c['has_contrast'] else 0, 5,
-            extra={'dates': [b['date'] for b in weekend]})
+            extra={'dates': [b['date'] for b in weekend], 'forecast': {b['date']: [
+                {k: e.get(k) for k in ('id','max_c','rain_probability_pct','wind_gust_max_kmh')}
+                for e in b['locations']] for b in weekend}})
     for event in snapshot.get('events', []) + snapshot.get('football', []):
         try:
             active = event.get('verified') is True and event.get('source_url', '').startswith('https://') and (

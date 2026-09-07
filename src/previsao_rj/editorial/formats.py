@@ -42,7 +42,9 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
         loc = locs[0]
         lines.append(f"Vai a {event['name']}? Confira a previsão para {loc['name']}.")
         for label, a, b in [('chegada',start-timedelta(hours=2),start),('evento',start,end),('saída',end,end+timedelta(hours=2))]:
-            rows = [r for r in loc['hourly'] if a<=stamp(r['time'])<b and number(r.get('precipitation_probability'))]
+            all_rows = [r for block in snapshot['forecast'].values() if isinstance(block,dict)
+                        for e in block.get('locations',[]) if e['id']==loc['id'] for r in e.get('hourly',[])]
+            rows = [r for r in all_rows if a<=stamp(r['time'])<b and number(r.get('precipitation_probability'))]
             if not rows: raise ValueError(f'Sem previsão para a janela de {label}')
             lines.append(f"Na {label}, a maior probabilidade de chuva por hora é de {max(r['precipitation_probability'] for r in rows):g} por cento.")
     elif format == 'vai_dar_praia':
@@ -55,7 +57,9 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
                 raise ValueError('Boletim oficial da praia sem origem ou validade')
             current = stamp(candidate['created_at'])
             if stamp(report['valid_until'])<=current: raise ValueError('Boletim de praia vencido')
-            wave = sea.get(loc['id'],{}).get('wave_height_max')
+            point=sea.get(loc['id'],{})
+            if point.get('date')!=snapshot['forecast']['today'].get('date'): raise ValueError('Ondas fora da data consultada')
+            wave = point.get('wave_height_max')
             if not number(wave): raise ValueError('Ondas indisponíveis para a praia')
             lines.append(f"Em {loc['name']}, ondas modeladas de até {wave:g} metros. O boletim oficial informa: {report.get('classification','não informada')}.")
         lines.append('A previsão do tempo não determina segurança para banho. Confira a sinalização e os avisos locais.')
