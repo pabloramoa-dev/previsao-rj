@@ -54,8 +54,8 @@ def model_agreement(per_model: dict[str, dict[str, Any]]) -> tuple[float, str]:
     rain = [v["rain_probability_pct"] for v in usable.values()
             if v.get("rain_probability_pct") is not None]
 
-    temp_sd = pstdev(maxima) if len(maxima) > 1 else 0.0
-    rain_sd = pstdev(rain) if len(rain) > 1 else 0.0
+    temp_sd = pstdev(maxima) if len(maxima) > 1 else 3.0
+    rain_sd = pstdev(rain) if len(rain) > 1 else 25.0
 
     temp_part = 15 * _clamp(1 - temp_sd / 3.0, 0, 1)     # 3 C de desvio zera
     rain_part = 15 * _clamp(1 - rain_sd / 25.0, 0, 1)    # 25 p.p. de desvio zera
@@ -100,7 +100,7 @@ def observation_match(observed_status: str,
     if observed_status in {"not_collected", "failed"}:
         return 0.0, "sem observacao (INMET/CEMADEN desligados ou indisponiveis)"
     if agreement is None:
-        return 10.0, "observacao presente, comparacao ainda nao implementada"
+        return 0.0, "observacao presente, mas sem comparacao validada: nenhum ponto atribuido"
     return round(WEIGHTS["observation_match"] * _clamp(agreement, 0, 1), 1), \
         f"observacao concorda em {agreement * 100:.0f}%"
 
@@ -167,3 +167,4 @@ def compute(
         },
         "computed_at": datetime.now().astimezone().isoformat(timespec="seconds"),
     }
+

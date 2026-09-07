@@ -14,6 +14,7 @@ Ligar exige, nesta ordem:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import math
 from typing import Any
 
 from .. import config
@@ -67,7 +68,7 @@ def quality_control(payload: Any, rules: dict[str, Any]) -> Any:
         except (TypeError, ValueError):
             rejected.append({"item": item, "reason": "valor nao numerico"})
             continue
-        if millimeters < 0 or millimeters > max_hourly:
+        if not math.isfinite(millimeters) or millimeters < 0 or millimeters > max_hourly:
             rejected.append({"item": item, "reason": f"fora da faixa 0..{max_hourly} mm"})
             continue
         if require_utc and not _has_utc_timestamp(stamp):
@@ -87,3 +88,4 @@ def _has_utc_timestamp(stamp: Any) -> bool:
     except ValueError:
         return False
     return parsed.tzinfo is not None and parsed.utcoffset() == timezone.utc.utcoffset(None)
+

@@ -10,6 +10,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[4]
 PACKAGE = 'src.previsao_rj.render.characters'
 PRESETS = {
+    'bira': {'voice': 'pm_alex', 'pitch': 1.0, 'speed': 1.04, 'gap': 0.22},
+    'bia': {'voice': 'pf_dora', 'pitch': 1.0, 'speed': 1.02, 'gap': 0.24},
     'ranzinza': {'voice': 'pm_alex', 'pitch': 0.88, 'speed': 0.95, 'gap': 0.30},
     'maria': {'voice': 'pf_dora', 'pitch': 0.94, 'speed': 0.95, 'gap': 0.30},
 }
@@ -23,6 +25,13 @@ def beat(text, kind='nenhum', **data):
 
 
 def demo_beats(character):
+    if character in {'bira', 'bia'}:
+        name = 'Bira do Tempo' if character == 'bira' else 'Bia da Orla'
+        return [beat(f'Eu sou {name}, do Previsão Rio. Vamos olhar o tempo com calma?'),
+                beat('Entre a orla e a Baixada, a previsão pode mudar bastante.', acao='apontar'),
+                beat('Com os dados de cada região, fica mais fácil decidir o seu dia.'),
+                beat('Este é um teste de imagem e voz. A Nuvem Rio veio conferir também!')]
+
     if character == 'maria':
         return [
             beat('Olha só! A Dona Maria chegou ao Previsão Rio.'),
@@ -67,7 +76,8 @@ def render(character, destination, snapshot=None):
     run([sys.executable, '-m', PACKAGE + '.kokoro', work / 'roteiro.txt',
          '--voz', preset['voice'], '--speed', preset['speed'], '--gap', preset['gap'],
          '--out', raw, '--seg-json', work / 'segs.json'])
-    audio_filter = FILTER.format(pitch=preset['pitch'], inv=1 / preset['pitch'])
+    audio_filter = ('highpass=f=80,acompressor=threshold=-18dB:ratio=2:attack=8:release=180,volume=1.1'
+                    if character in {'bira', 'bia'} else FILTER.format(pitch=preset['pitch'], inv=1 / preset['pitch']))
     run(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', audio_filter,
          '-ar', '44100', '-ac', '1', narration])
     run([sys.executable, '-m', PACKAGE + '.amplitude', narration, work / 'lip_full.json', '--fps', '22'])
@@ -100,7 +110,7 @@ def render(character, destination, snapshot=None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--personagem', choices=PRESETS, default='ranzinza')
+    parser.add_argument('--personagem', choices=PRESETS, default='bira')
     parser.add_argument('--out', required=True)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--demo', action='store_true')
@@ -112,3 +122,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

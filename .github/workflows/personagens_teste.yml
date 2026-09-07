@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        personagem: [ranzinza, maria]
+        personagem: [bira, bia]
     env:
       OMP_NUM_THREADS: '2'
     steps:
@@ -59,3 +59,4 @@ jobs:
             output/personagens/work_*/conteudo.json
           if-no-files-found: warn
           retention-days: 14
+

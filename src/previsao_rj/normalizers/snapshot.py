@@ -8,6 +8,7 @@ que hoje funciona ponta a ponta.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+import math
 from typing import Any
 
 from .. import config
@@ -40,7 +41,8 @@ def _daily_value(raw: dict[str, Any], field: str, index: int) -> Any:
 
 def _num(value: Any, default: float | None = None) -> float | None:
     try:
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else default
     except (TypeError, ValueError):
         return default
 
@@ -49,13 +51,13 @@ def _model_view(raw: dict[str, Any], day_index: int) -> dict[str, Any]:
     """Leitura de um modelo para um dia, no vocabulario interno."""
     max_c = _num(_daily_value(raw, "temperature_2m_max", day_index))
     min_c = _num(_daily_value(raw, "temperature_2m_min", day_index))
-    prob = _num(_daily_value(raw, "precipitation_probability_max", day_index), 0.0)
+    prob = _num(_daily_value(raw, "precipitation_probability_max", day_index))
     return {
         "max_c": max_c,
         "min_c": min_c,
         "apparent_max_c": _num(_daily_value(raw, "apparent_temperature_max", day_index)),
         "rain_probability_pct": prob,
-        "rain_mm": _num(_daily_value(raw, "precipitation_sum", day_index), 0.0),
+        "rain_mm": _num(_daily_value(raw, "precipitation_sum", day_index)),
         "wind_gust_max_kmh": _num(_daily_value(raw, "wind_gusts_10m_max", day_index)),
         "uv_index_max": _num(_daily_value(raw, "uv_index_max", day_index)),
         "weather_code": _daily_value(raw, "weather_code", day_index),
@@ -93,8 +95,23 @@ def _location_entry(loc: dict[str, Any],
                     primary_model: str,
                     day_index: int,
                     day: str) -> dict[str, Any]:
-    views = {model: _model_view(raw, day_index) for model, raw in per_model_raw.items()}
-    reference = views.get(primary_model) or next(iter(views.values()))
+    views = {}
+    for model, raw in per_model_raw.items():
+        dates = (raw.get("daily") or {}).get("time") or []
+        if day in dates:
+            views[model] = _model_view(raw, dates.index(day))
+    preferred = [primary_model] + [m for m in per_model_raw if m != primary_model]
+    fields = _model_view({}, 0)
+    reference, provenance = {}, {}
+    for field in fields:
+        chosen = next((m for m in preferred if views.get(m, {}).get(field) is not None), None)
+        reference[field] = views[chosen][field] if chosen else None
+        provenance[field] = {"model": chosen, "source": f"{open_meteo.SOURCE}:{chosen}" if chosen else None,
+                             "valid_for": day, "fallback_used": chosen is not None and chosen != primary_model}
+    window_model = next((m for m in preferred if any(
+        t.startswith(day) and p is not None for t, p in zip(
+            per_model_raw.get(m, {}).get("hourly", {}).get("time", []),
+            per_model_raw.get(m, {}).get("hourly", {}).get("precipitation_probability", [])))), None)
 
     maxima = [v["max_c"] for v in views.values() if v["max_c"] is not None]
     probs = [v["rain_probability_pct"] for v in views.values()
@@ -106,9 +123,9 @@ def _location_entry(loc: dict[str, Any],
         "name": loc["name"],
         "min_c": round(reference["min_c"]) if reference["min_c"] is not None else None,
         "max_c": round(reference["max_c"]) if reference["max_c"] is not None else None,
-        "rain_probability_pct": int(round(reference["rain_probability_pct"] or 0)),
-        "rain_mm": round(reference["rain_mm"] or 0.0, 1),
-        "weather_code": int(reference["weather_code"] or 0),
+        "rain_probability_pct": int(round(reference["rain_probability_pct"])) if reference["rain_probability_pct"] is not None else None,
+        "rain_mm": round(reference["rain_mm"], 1) if reference["rain_mm"] is not None else None,
+        "weather_code": int(reference["weather_code"]) if reference["weather_code"] is not None else None,
         # --- contexto editorial ---
         "condition": condition_label(reference["weather_code"]),
         "zone": loc["zone"],
@@ -124,8 +141,11 @@ def _location_entry(loc: dict[str, Any],
                               if reference["wind_gust_max_kmh"] is not None else None),
         "uv_index_max": (round(reference["uv_index_max"], 1)
                          if reference["uv_index_max"] is not None else None),
-        "rain_window": rain_window(per_model_raw.get(primary_model, {}), day),
+        "rain_window": rain_window(per_model_raw.get(window_model, {}), day),
         # --- procedencia e dispersao ---
+        "field_provenance": provenance,
+        "rain_window_model": window_model,
+        "fallback_used": any(p["fallback_used"] for p in provenance.values()) or (window_model is not None and window_model != primary_model),
         "models": views,
         "primary_model": primary_model,
         "agreement": {
@@ -151,7 +171,8 @@ def _day_block(locations: list[dict[str, Any]],
         if not per_model_raw:
             continue
         entries.append(_location_entry(loc, per_model_raw, primary_model, day_index, day))
-    return {"date": day, "locations": entries}
+    from ..editorial.contrast import regional_contrast
+    return {"date": day, "locations": entries, "contrast": regional_contrast(entries)}
 
 
 def build(
@@ -189,10 +210,12 @@ def build(
 
     previous_reference = None
     if previous_snapshot and hottest:
-        for entry in (previous_snapshot.get("forecast", {})
-                      .get("today", {}).get("locations", [])):
-            if entry.get("id") == hottest["id"]:
-                previous_reference = entry
+        for block in previous_snapshot.get("forecast", {}).values():
+            if not isinstance(block, dict) or block.get("date") != days["today"]:
+                continue
+            previous_reference = next((entry for entry in block.get("locations", [])
+                                       if entry.get("id") == hottest["id"]), None)
+            if previous_reference:
                 break
 
     per_model_reference = ({m: v for m, v in hottest["models"].items()} if hottest else {})
@@ -214,7 +237,16 @@ def build(
         if extra is not None:
             sources.append(extra.to_dict())
 
-    fallback_used = any(s.get("fallback_used") for s in sources)
+    for block in forecast.values():
+        for entry in block["locations"]:
+            for provenance in entry["field_provenance"].values():
+                source_result = collected.get(provenance["model"])
+                if source_result is not None:
+                    provenance.update(fetched_at=source_result.fetched_at,
+                                      model_run=source_result.model_run,
+                                      age_minutes=source_result.age_minutes)
+    fallback_used = any(s.get("fallback_used") for s in sources) or any(
+        e["fallback_used"] for block in forecast.values() for e in block["locations"])
 
     snapshot: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -273,7 +305,7 @@ def is_stale(snapshot: dict[str, Any], ttl_minutes: float | None = None,
         ttl_minutes = float(config.load_thresholds().get("snapshot_ttl_minutes", 120))
     generated = datetime.fromisoformat(snapshot["generated_at"])
     age = ((reference or now()) - generated).total_seconds() / 60
-    return age > ttl_minutes
+    return age < -5 or age > ttl_minutes
 
 
 # ---------------------------------------------------------------------------
@@ -302,3 +334,4 @@ def build_snapshot(locations: list[dict], raws: list[dict]) -> dict:
         "forecast": {"today": {"locations": [normalize_daily(l, r)
                                              for l, r in zip(locations, raws)]}},
     }
+

@@ -1,0 +1,4 @@
+events: []
+# Cada registro exige: id, name, location_id, start_at, end_at, expires_at,
+# source_url (fonte oficial), verified: true, category (football ou event).
+# Nenhum evento fictício é cadastrado em produção.

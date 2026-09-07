@@ -35,6 +35,7 @@ sys.path.insert(0, AQUI)
 from src.previsao_rj.render.characters import visual as P
 from src.previsao_rj.render.characters import core as L
 from src.previsao_rj.render.characters import lip as LIP
+from src.previsao_rj.render.characters import rj_cast as RJ
 config.frame_width = 8.0
 config.frame_height = 14.222
 config.pixel_width = 1080
@@ -145,7 +146,11 @@ def painel(tipo, d):
 class Piloto(MovingCameraScene):
 
     def construct(self):
-        if CENARIO_TIPO == 'quintal':
+        if PERSONAGEM in ('bira', 'bia'):
+            self.add(RJ.backdrop('orla' if PERSONAGEM == 'bia' else 'urbano'))
+            mascot = RJ.nuvem().scale(.52).move_to([2.8, 2.9, 0])
+            self.add(mascot)
+        elif CENARIO_TIPO == 'quintal':
             cen = P.quintal_varal(CENARIO)
             P.roupas_balancando(cen['roupas'], vento=CONT.get('vento_visual', 0.7))
             self.add(cen['grupo'])
@@ -154,7 +159,9 @@ class Piloto(MovingCameraScene):
             cen = P.varanda(CENARIO)
             self.add(cen['grupo'])
             P.animar_cenario(self, cen, CENARIO, calor=CALOR, duracao=FIM)
-        if PERSONAGEM == 'maria':
+        if PERSONAGEM in ('bira', 'bia'):
+            v = RJ.presenter(PERSONAGEM)
+        elif PERSONAGEM == 'maria':
             v = P.dona_maria()
         else:
             v = P.ranzinza()
@@ -172,7 +179,7 @@ class Piloto(MovingCameraScene):
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
         v['boca'].set_stroke(opacity=0)
         LIP.anexar_lipsync(self, v['boca'], t0=0.0, escala=1.05, deslocamento=DOWN * 0.04)
-        if PERSONAGEM == 'maria':
+        if PERSONAGEM in ('maria', 'bira', 'bia'):
             jw = janelas('apontar')
             if jw:
                 P.apontar(v, jw)
@@ -251,3 +258,4 @@ class Piloto(MovingCameraScene):
             stb['o'] = novo
         beng.add_updater(_bengala)
         self.wait(FIM)
+
