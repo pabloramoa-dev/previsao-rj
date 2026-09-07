@@ -9,3 +9,6 @@ output/*.wav
 output/*.json
 *.log
 .DS_Store
+output/.cache/
+output/work_*/
+output/media/
