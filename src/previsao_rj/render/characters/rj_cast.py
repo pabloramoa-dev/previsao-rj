@@ -43,7 +43,7 @@ def presenter(name='bira'):
     arms = [Line([x*.7,.14,0],h.get_center(),stroke_color=skin,stroke_width=24) for x,h in zip([-1,1],hands)]
     logo = Text('RJ', font_size=22, weight=BOLD, color=INK if bia else WHITE).move_to([.28,-.12,0])
     collar = VGroup(Line([-.26,.4,0],[0,.15,0],stroke_color=INK,stroke_width=4),Line([0,.15,0],[.26,.4,0],stroke_color=INK,stroke_width=4))
-    group = VGroup(back_hair, legs, shoes, *arms, body, neck, ears, head, hair, *eyes, *brows, nose, mouth, collar, logo, *hands)
+    group = VGroup(*([back_hair] if bia else []), legs, shoes, *arms, body, neck, ears, head, hair, *eyes, *brows, nose, mouth, collar, logo, *hands)
     result = dict(grupo=group,cab=head,oe=eyes[0],od=eyes[1],boca=mouth,maoE=hands[0],maoD=hands[1],bracoE=arms[0],bracoD=arms[1],sobE=brows[0],sobD=brows[1])
     result.update(cabeca=head,olho_e=eyes[0],olho_d=eyes[1],mao_e=hands[0],mao_d=hands[1])
     return result
