@@ -49,3 +49,12 @@ python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.
 Instalar `requirements/test.txt` e, para os vídeos, `requirements/characters.txt` e as dependências de sistema do workflow `personagens_teste.yml`. Os agendamentos de publicação permanecem desativados, como exigido pelo plano até o primeiro Reel real aprovado. Apenas a coleta de dados permanece agendada.
 
 Referências primárias consultadas: [Open-Meteo Marine](https://open-meteo.com/en/docs/marine-weather-api), [INMET — estações automáticas](https://portal.inmet.gov.br/servicos/esta%C3%A7%C3%B5es-autom%C3%A1ticas), [INMET — acesso aos dados](https://portal.inmet.gov.br/noticias/saiba-como-acessar-os-dados-meteorol%C3%B3gicos-dispon%C3%ADveis-no-site-do-inmet).
+
+## Fechamento da validação — 07/09/2026
+
+- [Workflow 34130854660](https://github.com/pabloramoa-dev/previsao-rj/actions/runs/34130854660) concluído com sucesso nos dois jobs. Os 91 testes passaram no runner.
+- Ficha de cinco expressões por apresentador renderizada e conferida. Corrigido um grupo vazio do Bira que fazia os limites geométricos incluírem indevidamente a origem da cena.
+- Demonstrações: Bira 16,52 s; Bia aproximadamente 16,43 s. Reel-base com coleta real: 16,77 s, 1080×1920, H.264/AAC. Este Reel curto é um teste funcional; a duração editorial de 25–38 s ainda precisa ser ajustada antes do lançamento.
+- Oito Stories gerados. Coleta usada no último teste: oito localidades, confiança 63/100. Os arquivos são registros dessa coleta, não uma previsão permanentemente atualizada.
+- Workflow manual alinhado com Bira/Bia. O modo fixture usa demonstração e continua impedido de publicar.
+- A conexão GitHub disponível não permite consultar/configurar secrets ou variables por suas rotas de API. Portanto, esta rodada não confirmou as credenciais Meta do RJ e não publicou no Instagram. Nenhum cron de publicação foi ativado.
