@@ -5,6 +5,12 @@ name: Coletar dados — Previsão RJ (sem publicação)
 # O schedule fica desligado até a Fase 7 (§13.2 e gate de produção).
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/coletar_dados.yml'
+      - 'src/previsao_rj/render/stories.py'
+      - 'src/previsao_rj/render/story_assets/**'
   workflow_dispatch:
     inputs:
       tier:
@@ -34,7 +40,10 @@ jobs:
           python -m pytest -q
 
       - name: Coletar e normalizar
-        run: python -m scripts.collect_live output/snapshot.json --tier ${{ inputs.tier }}
+        run: python -m scripts.collect_live output/snapshot.json --tier ${{ inputs.tier || '1' }}
+
+      - name: Gerar Stories com o visual aprovado
+        run: python -m src.previsao_rj.render.stories output/snapshot.json output/stories
 
       - name: Resumo legível
         run: |
@@ -71,5 +80,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-${{ github.run_id }}
-          path: output/snapshot.json
+          path: |
+            output/snapshot.json
+            output/stories/*.png
           retention-days: 14

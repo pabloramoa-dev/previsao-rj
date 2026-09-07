@@ -1,20 +1,50 @@
 name: Health — Meta / @previsaorj
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/token_health.yml'
 permissions:
   contents: read
 jobs:
   meta-health:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - run: pip install requests
-      - name: Verificar destino sem publicar
+      - name: Diagnosticar conexão RJ sem publicar nem revelar credenciais
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
           EXPECTED_IG_USERNAME: previsaorj
-        run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print(verify_destination().get('username'))"
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from src.previsao_rj.publish.instagram import verify_destination
+          missing = [name for name in ('IG_USER_ID','IG_ACCESS_TOKEN') if not os.environ.get(name)]
+          report = {'publication': False, 'expected_username': 'previsaorj'}
+          if missing:
+              report.update(status='blocked', reason='missing_credentials', missing=missing)
+          else:
+              try:
+                  destination = verify_destination()
+                  report.update(status='verified', username=destination.get('username'))
+              except Exception:
+                  report.update(status='blocked', reason='destination_or_token_not_verified')
+          Path('output').mkdir(exist_ok=True)
+          Path('output/meta-health.json').write_text(json.dumps(report,indent=2))
+          print(json.dumps(report))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+              summary.write('## Conexão Meta RJ\n\n'+json.dumps(report,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meta-health-${{ github.run_id }}
+          path: output/meta-health.json
+          retention-days: 14

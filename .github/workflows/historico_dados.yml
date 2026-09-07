@@ -71,6 +71,9 @@ jobs:
         run: |
           python -m scripts.snapshot_summary output/snapshot.json >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Gerar Stories com o visual aprovado
+        run: python -m src.previsao_rj.render.stories output/snapshot.json output/stories
+
       - name: Avaliar pautas sem publicar
         run: python -m scripts.editorial_scan output/snapshot.json
 
@@ -80,5 +83,6 @@ jobs:
           path: |
             output/snapshot.json
             output/editorial_queue.json
+            output/stories/*.png
           retention-days: 30
 
