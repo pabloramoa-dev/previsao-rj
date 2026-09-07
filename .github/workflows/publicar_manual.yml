@@ -8,10 +8,10 @@ on:
         options: [fixture, live]
         default: fixture
       personagem:
-        description: "Personagem e voz original"
+        description: "Apresentador do Previsão RJ"
         type: choice
-        options: [ranzinza, maria]
-        default: ranzinza
+        options: [bira, bia]
+        default: bira
       publicar:
         description: "Publicar no @previsaorj? Desmarcado = somente artifact"
         type: boolean
@@ -53,8 +53,14 @@ jobs:
         run: python -m scripts.collect_live output/snapshot.json
       - name: Usar fixture técnica
         if: ${{ inputs.fonte == 'fixture' }}
-        run: cp tests/fixtures/snapshot_rj.json output/snapshot.json
-      - name: Render
+        run: |
+          mkdir -p output
+          cp tests/fixtures/snapshot_rj.json output/snapshot.json
+      - name: Demonstração sem previsão de produção
+        if: ${{ inputs.fonte == 'fixture' }}
+        run: python -m src.previsao_rj.render.characters.pipeline --demo --personagem ${{ inputs.personagem }} --out output/REEL.mp4
+      - name: Render com dados atuais
+        if: ${{ inputs.fonte == 'live' }}
         run: python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem ${{ inputs.personagem }} --out output/REEL.mp4
       - name: Legenda
         run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt

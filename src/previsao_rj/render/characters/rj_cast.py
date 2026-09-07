@@ -109,6 +109,6 @@ class CastSheet(Scene):
             self.add(Text('Bira do Tempo' if name=='bira' else 'Bia da Orla',font='Poppins',font_size=23,color=INK).move_to([x,5.95,0]))
             for i,mood in enumerate(EXPRESSIONS):
                 v=expression(presenter(name),mood)
-                v['grupo'].scale(.34).move_to([x,4.75-i*2.25,0])
+                v['grupo'].scale_to_fit_height(1.75).move_to([x,4.75-i*2.25,0])
                 assert v['grupo'].width < 3.2 and v['grupo'].height < 2.0
                 self.add(v['grupo'],Text(mood.upper(),font='Poppins',font_size=17,color=INK).move_to([x,3.65-i*2.25,0]))

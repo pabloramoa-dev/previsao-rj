@@ -13,14 +13,16 @@ verifica isso em cada execução de CI.
 
 ## Estado inicial seguro
 
-- `schedule` permanece desligado em todos os workflows.
+- Agendamentos de publicação permanecem desligados. O histórico de dados coleta às 06h e 18h, sem publicar.
 - `publicar_manual.yml` usa `publicar=false` por padrão.
 - `reel_manha.yml` é manual até o primeiro Reel real ser validado no @previsaorj.
 - `coletar_dados.yml` não usa nenhum secret e não publica nada.
 - Nenhum segredo é versionado.
 - A versão da Graph API vem de `META_GRAPH_VERSION`.
 
-Estado por fase: `docs/IMPLEMENTATION_STATUS.md`.
+Balanço atualizado: [STATUS_IMPLANTACAO_2026-09-07.md](docs/STATUS_IMPLANTACAO_2026-09-07.md).
+
+Elenco atual: Bira do Tempo, Bia da Orla e Nuvem RJ. O workflow **Teste visual e vozes** produz demonstrações, ficha de expressões, Reel-base com coleta real e Stories, sem publicação.
 
 ## Fluxo
 
