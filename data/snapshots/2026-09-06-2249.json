@@ -1,0 +1,1168 @@
+{
+  "schema_version": "2.0",
+  "generated_at": "2026-09-06T22:49:50-03:00",
+  "timezone": "America/Sao_Paulo",
+  "region": "rio_metropolitano",
+  "coverage": [
+    "duque_de_caxias",
+    "niteroi",
+    "nova_iguacu",
+    "rio_de_janeiro"
+  ],
+  "forecast": {
+    "today": {
+      "date": "2026-09-06",
+      "locations": [
+        {
+          "id": "barra_da_tijuca",
+          "name": "Barra da Tijuca",
+          "min_c": 18,
+          "max_c": 22,
+          "rain_probability_pct": 98,
+          "rain_mm": 19.3,
+          "weather_code": 81,
+          "condition": "pancadas",
+          "zone": "barra_recreio",
+          "municipality": "rio_de_janeiro",
+          "latitude": -23.0004,
+          "longitude": -43.3659,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 25,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "06:00",
+            "peak_probability_pct": 98,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 22.0,
+              "min_c": 17.5,
+              "apparent_max_c": 25.3,
+              "rain_probability_pct": 98.0,
+              "rain_mm": 19.3,
+              "wind_gust_max_kmh": 25.2,
+              "uv_index_max": null,
+              "weather_code": 81
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.9,
+              "min_c": 16.9,
+              "apparent_max_c": 24.1,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 26.6,
+              "wind_gust_max_kmh": 50.0,
+              "uv_index_max": null,
+              "weather_code": 61
+            },
+            "gfs_seamless": {
+              "max_c": 20.8,
+              "min_c": 16.5,
+              "apparent_max_c": 23.5,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 21.2,
+              "wind_gust_max_kmh": 31.3,
+              "uv_index_max": 0.85,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 1.2,
+            "rain_probability_spread_pct": 2
+          }
+        },
+        {
+          "id": "campo_grande",
+          "name": "Campo Grande",
+          "min_c": 17,
+          "max_c": 22,
+          "rain_probability_pct": 98,
+          "rain_mm": 18.0,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "zona_oeste",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9068,
+          "longitude": -43.5616,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 58,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "06:00",
+            "peak_probability_pct": 98,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 21.5,
+              "min_c": 16.9,
+              "apparent_max_c": 25.2,
+              "rain_probability_pct": 98.0,
+              "rain_mm": 18.0,
+              "wind_gust_max_kmh": 57.6,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.7,
+              "min_c": 16.7,
+              "apparent_max_c": 23.8,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 26.6,
+              "wind_gust_max_kmh": 50.0,
+              "uv_index_max": null,
+              "weather_code": 61
+            },
+            "gfs_seamless": {
+              "max_c": 20.7,
+              "min_c": 16.4,
+              "apparent_max_c": 23.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 19.3,
+              "wind_gust_max_kmh": 31.3,
+              "uv_index_max": 0.8,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 0.8,
+            "rain_probability_spread_pct": 2
+          }
+        },
+        {
+          "id": "centro_rio",
+          "name": "Centro",
+          "min_c": 18,
+          "max_c": 22,
+          "rain_probability_pct": 100,
+          "rain_mm": 19.3,
+          "weather_code": 81,
+          "condition": "pancadas",
+          "zone": "centro",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9035,
+          "longitude": -43.2096,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 25,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "07:00",
+            "peak_probability_pct": 100,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 22.0,
+              "min_c": 17.5,
+              "apparent_max_c": 25.3,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 19.3,
+              "wind_gust_max_kmh": 25.2,
+              "uv_index_max": null,
+              "weather_code": 81
+            },
+            "ecmwf_ifs025": {
+              "max_c": 21.0,
+              "min_c": 17.0,
+              "apparent_max_c": 23.8,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 27.5,
+              "wind_gust_max_kmh": 29.5,
+              "uv_index_max": null,
+              "weather_code": 63
+            },
+            "gfs_seamless": {
+              "max_c": 21.6,
+              "min_c": 16.8,
+              "apparent_max_c": 25.1,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 22.1,
+              "wind_gust_max_kmh": 22.7,
+              "uv_index_max": 0.85,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 1.0,
+            "rain_probability_spread_pct": 0
+          }
+        },
+        {
+          "id": "copacabana",
+          "name": "Copacabana",
+          "min_c": 18,
+          "max_c": 22,
+          "rain_probability_pct": 100,
+          "rain_mm": 19.3,
+          "weather_code": 81,
+          "condition": "pancadas",
+          "zone": "zona_sul",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9711,
+          "longitude": -43.1822,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 25,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "07:00",
+            "peak_probability_pct": 100,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 22.0,
+              "min_c": 17.5,
+              "apparent_max_c": 25.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 19.3,
+              "wind_gust_max_kmh": 25.2,
+              "uv_index_max": null,
+              "weather_code": 81
+            },
+            "ecmwf_ifs025": {
+              "max_c": 21.0,
+              "min_c": 17.0,
+              "apparent_max_c": 23.9,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 27.5,
+              "wind_gust_max_kmh": 29.5,
+              "uv_index_max": null,
+              "weather_code": 63
+            },
+            "gfs_seamless": {
+              "max_c": 21.6,
+              "min_c": 16.8,
+              "apparent_max_c": 25.2,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 22.1,
+              "wind_gust_max_kmh": 22.7,
+              "uv_index_max": 0.85,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 1.0,
+            "rain_probability_spread_pct": 0
+          }
+        },
+        {
+          "id": "duque_de_caxias",
+          "name": "Duque de Caxias",
+          "min_c": 17,
+          "max_c": 22,
+          "rain_probability_pct": 100,
+          "rain_mm": 18.0,
+          "weather_code": 81,
+          "condition": "pancadas",
+          "zone": "baixada",
+          "municipality": "duque_de_caxias",
+          "latitude": -22.786,
+          "longitude": -43.311,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 25,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "07:00",
+            "peak_probability_pct": 100,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 22.0,
+              "min_c": 17.2,
+              "apparent_max_c": 25.1,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 18.0,
+              "wind_gust_max_kmh": 24.8,
+              "uv_index_max": null,
+              "weather_code": 81
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.9,
+              "min_c": 16.9,
+              "apparent_max_c": 23.7,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 27.5,
+              "wind_gust_max_kmh": 29.5,
+              "uv_index_max": null,
+              "weather_code": 63
+            },
+            "gfs_seamless": {
+              "max_c": 21.6,
+              "min_c": 16.7,
+              "apparent_max_c": 25.1,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 16.9,
+              "wind_gust_max_kmh": 22.7,
+              "uv_index_max": 1.1,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 1.1,
+            "rain_probability_spread_pct": 0
+          }
+        },
+        {
+          "id": "icarai",
+          "name": "Icaraí",
+          "min_c": 17,
+          "max_c": 22,
+          "rain_probability_pct": 98,
+          "rain_mm": 26.6,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "niteroi_baia",
+          "municipality": "niteroi",
+          "latitude": -22.9071,
+          "longitude": -43.1103,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 42,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "07:00",
+            "peak_probability_pct": 98,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 21.5,
+              "min_c": 17.4,
+              "apparent_max_c": 24.6,
+              "rain_probability_pct": 98.0,
+              "rain_mm": 26.6,
+              "wind_gust_max_kmh": 41.8,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.7,
+              "min_c": 16.5,
+              "apparent_max_c": 23.9,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 25.5,
+              "wind_gust_max_kmh": 32.0,
+              "uv_index_max": null,
+              "weather_code": 63
+            },
+            "gfs_seamless": {
+              "max_c": 21.0,
+              "min_c": 16.3,
+              "apparent_max_c": 24.3,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 25.2,
+              "wind_gust_max_kmh": 30.2,
+              "uv_index_max": 1.3,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 0.8,
+            "rain_probability_spread_pct": 2
+          }
+        },
+        {
+          "id": "nova_iguacu",
+          "name": "Nova Iguaçu",
+          "min_c": 17,
+          "max_c": 22,
+          "rain_probability_pct": 100,
+          "rain_mm": 18.0,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "baixada",
+          "municipality": "nova_iguacu",
+          "latitude": -22.7556,
+          "longitude": -43.4603,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 58,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "23:00",
+            "peak_probability_pct": 100,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 21.6,
+              "min_c": 17.0,
+              "apparent_max_c": 25.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 18.0,
+              "wind_gust_max_kmh": 57.6,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.9,
+              "min_c": 16.7,
+              "apparent_max_c": 24.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 19.8,
+              "wind_gust_max_kmh": 33.5,
+              "uv_index_max": null,
+              "weather_code": 61
+            },
+            "gfs_seamless": {
+              "max_c": 21.4,
+              "min_c": 16.7,
+              "apparent_max_c": 24.6,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 15.9,
+              "wind_gust_max_kmh": 29.2,
+              "uv_index_max": 1.3,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 0.7,
+            "rain_probability_spread_pct": 0
+          }
+        },
+        {
+          "id": "tijuca",
+          "name": "Tijuca",
+          "min_c": 17,
+          "max_c": 22,
+          "rain_probability_pct": 100,
+          "rain_mm": 19.3,
+          "weather_code": 81,
+          "condition": "pancadas",
+          "zone": "grande_tijuca",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9249,
+          "longitude": -43.2322,
+          "spatial_fit": "medio",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 25,
+          "wind_gust_max_kmh": 25,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "23:00",
+            "peak_hour": "07:00",
+            "peak_probability_pct": 100,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 21.9,
+              "min_c": 17.4,
+              "apparent_max_c": 25.2,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 19.3,
+              "wind_gust_max_kmh": 25.2,
+              "uv_index_max": null,
+              "weather_code": 81
+            },
+            "ecmwf_ifs025": {
+              "max_c": 20.9,
+              "min_c": 16.9,
+              "apparent_max_c": 23.7,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 27.5,
+              "wind_gust_max_kmh": 29.5,
+              "uv_index_max": null,
+              "weather_code": 63
+            },
+            "gfs_seamless": {
+              "max_c": 21.5,
+              "min_c": 16.7,
+              "apparent_max_c": 25.0,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 22.1,
+              "wind_gust_max_kmh": 22.7,
+              "uv_index_max": 0.85,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 1.0,
+            "rain_probability_spread_pct": 0
+          }
+        }
+      ],
+      "confidence": 68.6
+    },
+    "tomorrow": {
+      "date": "2026-09-07",
+      "locations": [
+        {
+          "id": "barra_da_tijuca",
+          "name": "Barra da Tijuca",
+          "min_c": 16,
+          "max_c": 18,
+          "rain_probability_pct": 85,
+          "rain_mm": 7.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "barra_recreio",
+          "municipality": "rio_de_janeiro",
+          "latitude": -23.0004,
+          "longitude": -43.3659,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 15,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "08:00",
+            "peak_hour": "00:00",
+            "peak_probability_pct": 85,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.6,
+              "min_c": 16.4,
+              "apparent_max_c": 19.2,
+              "rain_probability_pct": 85.0,
+              "rain_mm": 7.7,
+              "wind_gust_max_kmh": 14.8,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.7,
+              "min_c": 17.0,
+              "apparent_max_c": 19.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 4.8,
+              "wind_gust_max_kmh": 27.0,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.1,
+              "min_c": 15.1,
+              "apparent_max_c": 17.2,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 11.9,
+              "wind_gust_max_kmh": 29.2,
+              "uv_index_max": 1.0,
+              "weather_code": 61
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 3.6,
+            "rain_probability_spread_pct": 15
+          }
+        },
+        {
+          "id": "campo_grande",
+          "name": "Campo Grande",
+          "min_c": 16,
+          "max_c": 17,
+          "rain_probability_pct": 85,
+          "rain_mm": 8.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "zona_oeste",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9068,
+          "longitude": -43.5616,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 28,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "08:00",
+            "peak_hour": "00:00",
+            "peak_probability_pct": 85,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.2,
+              "min_c": 15.9,
+              "apparent_max_c": 19.0,
+              "rain_probability_pct": 85.0,
+              "rain_mm": 8.7,
+              "wind_gust_max_kmh": 27.7,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.5,
+              "min_c": 16.8,
+              "apparent_max_c": 19.1,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 4.8,
+              "wind_gust_max_kmh": 27.0,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.2,
+              "min_c": 14.8,
+              "apparent_max_c": 17.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 11.0,
+              "wind_gust_max_kmh": 29.2,
+              "uv_index_max": 0.95,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 3.3,
+            "rain_probability_spread_pct": 15
+          }
+        },
+        {
+          "id": "centro_rio",
+          "name": "Centro",
+          "min_c": 16,
+          "max_c": 18,
+          "rain_probability_pct": 93,
+          "rain_mm": 7.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "centro",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9035,
+          "longitude": -43.2096,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 15,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "07:00",
+            "peak_hour": "01:00",
+            "peak_probability_pct": 93,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.6,
+              "min_c": 16.4,
+              "apparent_max_c": 19.2,
+              "rain_probability_pct": 93.0,
+              "rain_mm": 7.7,
+              "wind_gust_max_kmh": 14.8,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.1,
+              "min_c": 16.5,
+              "apparent_max_c": 19.9,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 5.9,
+              "wind_gust_max_kmh": 17.3,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.4,
+              "min_c": 15.6,
+              "apparent_max_c": 17.7,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 14.7,
+              "wind_gust_max_kmh": 18.0,
+              "uv_index_max": 0.75,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.7,
+            "rain_probability_spread_pct": 7
+          }
+        },
+        {
+          "id": "copacabana",
+          "name": "Copacabana",
+          "min_c": 16,
+          "max_c": 18,
+          "rain_probability_pct": 93,
+          "rain_mm": 7.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "zona_sul",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9711,
+          "longitude": -43.1822,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 15,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "07:00",
+            "peak_hour": "01:00",
+            "peak_probability_pct": 93,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.6,
+              "min_c": 16.4,
+              "apparent_max_c": 19.3,
+              "rain_probability_pct": 93.0,
+              "rain_mm": 7.7,
+              "wind_gust_max_kmh": 14.8,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.1,
+              "min_c": 16.6,
+              "apparent_max_c": 19.9,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 5.9,
+              "wind_gust_max_kmh": 17.3,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.4,
+              "min_c": 15.6,
+              "apparent_max_c": 17.7,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 14.7,
+              "wind_gust_max_kmh": 18.0,
+              "uv_index_max": 0.75,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.7,
+            "rain_probability_spread_pct": 7
+          }
+        },
+        {
+          "id": "duque_de_caxias",
+          "name": "Duque de Caxias",
+          "min_c": 16,
+          "max_c": 18,
+          "rain_probability_pct": 93,
+          "rain_mm": 8.6,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "baixada",
+          "municipality": "duque_de_caxias",
+          "latitude": -22.786,
+          "longitude": -43.311,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 12,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "07:00",
+            "peak_hour": "01:00",
+            "peak_probability_pct": 93,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.5,
+              "min_c": 16.3,
+              "apparent_max_c": 19.0,
+              "rain_probability_pct": 93.0,
+              "rain_mm": 8.6,
+              "wind_gust_max_kmh": 12.2,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.0,
+              "min_c": 16.5,
+              "apparent_max_c": 19.8,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 5.9,
+              "wind_gust_max_kmh": 17.3,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.5,
+              "min_c": 15.3,
+              "apparent_max_c": 18.0,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 12.5,
+              "wind_gust_max_kmh": 18.0,
+              "uv_index_max": 0.75,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.5,
+            "rain_probability_spread_pct": 7
+          }
+        },
+        {
+          "id": "icarai",
+          "name": "Icaraí",
+          "min_c": 16,
+          "max_c": 17,
+          "rain_probability_pct": 85,
+          "rain_mm": 7.9,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "niteroi_baia",
+          "municipality": "niteroi",
+          "latitude": -22.9071,
+          "longitude": -43.1103,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": true,
+          "apparent_max_c": 18,
+          "wind_gust_max_kmh": 26,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "08:00",
+            "peak_hour": "00:00",
+            "peak_probability_pct": 85,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.0,
+              "min_c": 15.7,
+              "apparent_max_c": 18.3,
+              "rain_probability_pct": 85.0,
+              "rain_mm": 7.9,
+              "wind_gust_max_kmh": 26.3,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 18.5,
+              "min_c": 16.3,
+              "apparent_max_c": 19.4,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 6.8,
+              "wind_gust_max_kmh": 16.6,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.3,
+              "min_c": 14.7,
+              "apparent_max_c": 17.6,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 14.1,
+              "wind_gust_max_kmh": 27.4,
+              "uv_index_max": 1.1,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.2,
+            "rain_probability_spread_pct": 15
+          }
+        },
+        {
+          "id": "nova_iguacu",
+          "name": "Nova Iguaçu",
+          "min_c": 16,
+          "max_c": 17,
+          "rain_probability_pct": 83,
+          "rain_mm": 8.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "baixada",
+          "municipality": "nova_iguacu",
+          "latitude": -22.7556,
+          "longitude": -43.4603,
+          "spatial_fit": "alto",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 28,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "07:00",
+            "peak_hour": "00:00",
+            "peak_probability_pct": 83,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.3,
+              "min_c": 16.0,
+              "apparent_max_c": 19.2,
+              "rain_probability_pct": 83.0,
+              "rain_mm": 8.7,
+              "wind_gust_max_kmh": 27.7,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 18.5,
+              "min_c": 16.6,
+              "apparent_max_c": 19.5,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 8.7,
+              "wind_gust_max_kmh": 14.8,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.5,
+              "min_c": 15.3,
+              "apparent_max_c": 17.6,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 13.2,
+              "wind_gust_max_kmh": 16.9,
+              "uv_index_max": 0.75,
+              "weather_code": 81
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.0,
+            "rain_probability_spread_pct": 17
+          }
+        },
+        {
+          "id": "tijuca",
+          "name": "Tijuca",
+          "min_c": 16,
+          "max_c": 18,
+          "rain_probability_pct": 93,
+          "rain_mm": 7.7,
+          "weather_code": 80,
+          "condition": "pancadas",
+          "zone": "grande_tijuca",
+          "municipality": "rio_de_janeiro",
+          "latitude": -22.9249,
+          "longitude": -43.2322,
+          "spatial_fit": "medio",
+          "sample_tier": 1,
+          "beach": false,
+          "apparent_max_c": 19,
+          "wind_gust_max_kmh": 15,
+          "uv_index_max": null,
+          "rain_window": {
+            "start": "00:00",
+            "end": "07:00",
+            "peak_hour": "01:00",
+            "peak_probability_pct": 93,
+            "threshold_pct": 45.0
+          },
+          "models": {
+            "icon_seamless": {
+              "max_c": 17.5,
+              "min_c": 16.3,
+              "apparent_max_c": 19.1,
+              "rain_probability_pct": 93.0,
+              "rain_mm": 7.7,
+              "wind_gust_max_kmh": 14.8,
+              "uv_index_max": null,
+              "weather_code": 80
+            },
+            "ecmwf_ifs025": {
+              "max_c": 19.0,
+              "min_c": 16.5,
+              "apparent_max_c": 19.8,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 5.9,
+              "wind_gust_max_kmh": 17.3,
+              "uv_index_max": null,
+              "weather_code": 53
+            },
+            "gfs_seamless": {
+              "max_c": 16.3,
+              "min_c": 15.5,
+              "apparent_max_c": 17.6,
+              "rain_probability_pct": 100.0,
+              "rain_mm": 14.7,
+              "wind_gust_max_kmh": 18.0,
+              "uv_index_max": 0.75,
+              "weather_code": 80
+            }
+          },
+          "primary_model": "icon_seamless",
+          "agreement": {
+            "models_used": 3,
+            "max_c_spread": 2.7,
+            "rain_probability_spread_pct": 7
+          }
+        }
+      ],
+      "confidence": 68.6
+    },
+    "today_confidence": 68.6,
+    "models": [
+      "ecmwf_ifs025",
+      "gfs_seamless",
+      "icon_seamless"
+    ],
+    "primary_model": "icon_seamless"
+  },
+  "observed": {
+    "name": "inmet_estacoes",
+    "status": "not_collected",
+    "fetched_at": "2026-09-06T22:49:50-03:00",
+    "model_run": null,
+    "valid_for": null,
+    "fallback_used": false,
+    "detail": "INMET desligado ate a validacao de formato",
+    "age_minutes": 0.0
+  },
+  "marine": {
+    "status": "not_collected"
+  },
+  "beach_status": {
+    "status": "not_collected"
+  },
+  "events": [],
+  "football": [],
+  "mobility": [],
+  "confidence": {
+    "score": 68.6,
+    "max_possible": 100,
+    "level": "media",
+    "parts": {
+      "model_agreement": 26.7,
+      "run_recency": 20,
+      "temporal_consistency": 7.5,
+      "observation_match": 0.0,
+      "spatial_fit": 14.4
+    },
+    "weights": {
+      "model_agreement": 30,
+      "run_recency": 20,
+      "temporal_consistency": 15,
+      "observation_match": 20,
+      "spatial_fit": 15
+    },
+    "notes": [
+      "model_agreement: 3 modelos; desvio maxima 0.5 C, desvio chuva 1 p.p.",
+      "run_recency: dado com 0 min (TTL 120 min)",
+      "temporal_consistency: sem snapshot anterior para comparar",
+      "observation_match: sem observacao (INMET/CEMADEN desligados ou indisponiveis)",
+      "spatial_fit: 8 pontos avaliados"
+    ],
+    "gates": {
+      "allow_categorical_language": true,
+      "allow_alert_reel": true
+    },
+    "computed_at": "2026-09-07T01:49:50+00:00"
+  },
+  "sources": [
+    {
+      "name": "open_meteo_forecast:icon_seamless",
+      "status": "ok",
+      "fetched_at": "2026-09-06T22:49:50-03:00",
+      "model_run": "icon_seamless@serie_inicia_2026-09-06T00:00",
+      "valid_for": "2026-09-06..2026-09-08",
+      "fallback_used": false,
+      "detail": null,
+      "age_minutes": 0.0
+    },
+    {
+      "name": "open_meteo_forecast:ecmwf_ifs025",
+      "status": "ok",
+      "fetched_at": "2026-09-06T22:49:50-03:00",
+      "model_run": "ecmwf_ifs025@serie_inicia_2026-09-06T00:00",
+      "valid_for": "2026-09-06..2026-09-08",
+      "fallback_used": false,
+      "detail": null,
+      "age_minutes": 0.0
+    },
+    {
+      "name": "open_meteo_forecast:gfs_seamless",
+      "status": "ok",
+      "fetched_at": "2026-09-06T22:49:50-03:00",
+      "model_run": "gfs_seamless@serie_inicia_2026-09-06T00:00",
+      "valid_for": "2026-09-06..2026-09-08",
+      "fallback_used": false,
+      "detail": null,
+      "age_minutes": 0.0
+    },
+    {
+      "name": "inmet_estacoes",
+      "status": "not_collected",
+      "fetched_at": "2026-09-06T22:49:50-03:00",
+      "model_run": null,
+      "valid_for": null,
+      "fallback_used": false,
+      "detail": "INMET desligado ate a validacao de formato",
+      "age_minutes": 0.0
+    }
+  ],
+  "fallback_used": false,
+  "valid_for": "2026-09-06..2026-09-08",
+  "model_run": "icon_seamless@serie_inicia_2026-09-06T00:00"
+}
