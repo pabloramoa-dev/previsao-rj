@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 from src.previsao_rj import config
-from src.previsao_rj.collectors import observations, open_meteo
+from src.previsao_rj.collectors import observations, open_meteo, marine
 from src.previsao_rj.normalizers import snapshot as snap
 
 
@@ -37,7 +37,12 @@ def main() -> None:
         previous = json.loads(Path(args.previous).read_text(encoding="utf-8"))
 
     document = snap.build(collected, locations,
-                          previous_snapshot=previous, observed=observed)
+                          previous_snapshot=previous, observed=observed, marine=marine.collect(locations))
+
+    import yaml
+    event_path = config.ROOT / "config/eventos_manuais.yaml"
+    if event_path.exists():
+        document["events"] = (yaml.safe_load(event_path.read_text()) or {}).get("events", [])
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -59,3 +64,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

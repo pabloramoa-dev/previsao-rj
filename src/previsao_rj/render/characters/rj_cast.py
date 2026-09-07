@@ -51,7 +51,8 @@ def nuvem(expression='neutra'):
     base = shape(RoundedRectangle, '#F4FAFD', width=1.62,height=.56,corner_radius=.26).move_to([0,-.15,0])
     eyes = VGroup(*[Dot([x,.07,0],radius=.065,color=INK) for x in [-.25,.25]])
     mouth = ArcBetweenPoints([-.15,-.12,0],[.15,-.12,0],angle=1 if expression!='preocupada' else -1,stroke_color=INK,stroke_width=4)
-    return VGroup(lobes,base,eyes,mouth)
+    outline = Union(*lobes, base, fill_color='#F4FAFD', fill_opacity=1, stroke_color=INK, stroke_width=5)
+    return VGroup(outline,eyes,mouth)
 
 
 def backdrop(kind='urbano'):

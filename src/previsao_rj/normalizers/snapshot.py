@@ -16,7 +16,7 @@ from ..collectors import open_meteo
 from ..collectors.base import SourceResult, iso, now
 from ..quality import confidence as conf
 
-SCHEMA_VERSION = "2.0"
+SCHEMA_VERSION = "2.1"
 
 # Codigos WMO agrupados no vocabulario que o roteiro usa.
 _CONDITION_BY_CODE = {
@@ -90,6 +90,28 @@ def rain_window(raw: dict[str, Any], day: str,
     }
 
 
+def hourly_rows(per_model_raw, preferred, day):
+    """Alinha os modelos pelo timestamp e mantém a origem de cada campo."""
+    indexes = {m: {t:i for i,t in enumerate(raw.get('hourly', {}).get('time', []))}
+               for m,raw in per_model_raw.items()}
+    times = sorted({t for index in indexes.values() for t in index if t.startswith(day)})
+    rows = []
+    for t in times:
+        row = {'time': t + '-03:00', 'field_models': {}}
+        for field in open_meteo.HOURLY_FIELDS:
+            row[field] = None
+            for model in preferred:
+                index = indexes.get(model, {}).get(t)
+                series = per_model_raw.get(model, {}).get('hourly', {}).get(field, [])
+                value = _num(series[index]) if index is not None and index < len(series) else None
+                if value is not None:
+                    row[field] = value
+                    row['field_models'][field] = model
+                    break
+        rows.append(row)
+    return rows
+
+
 def _location_entry(loc: dict[str, Any],
                     per_model_raw: dict[str, dict[str, Any]],
                     primary_model: str,
@@ -145,6 +167,7 @@ def _location_entry(loc: dict[str, Any],
         # --- procedencia e dispersao ---
         "field_provenance": provenance,
         "rain_window_model": window_model,
+        "hourly": hourly_rows(per_model_raw, preferred, day),
         "fallback_used": any(p["fallback_used"] for p in provenance.values()) or (window_model is not None and window_model != primary_model),
         "models": views,
         "primary_model": primary_model,
@@ -198,7 +221,8 @@ def build(
     # O dia de referencia vem do proprio dado servido, nao do relogio da maquina:
     # assim uma fixture e um render sempre falam do mesmo dia (secao 14.2).
     reference_days = _reference_days(per_model_points.get(primary_model, {}))
-    days = {"today": reference_days[0], "tomorrow": reference_days[1]}
+    days = {("today" if i == 0 else "tomorrow" if i == 1 else f"day_{i}"): day
+            for i, day in enumerate(reference_days)}
     forecast = {
         key: _day_block(locations, per_model_points, primary_model, index, day)
         for index, (key, day) in enumerate(days.items())
@@ -284,8 +308,8 @@ def _reference_days(points: dict[str, dict[str, Any]]) -> list[str]:
     for raw in points.values():
         times = ((raw or {}).get("daily") or {}).get("time") or []
         if len(times) >= 2:
-            return [times[0], times[1]]
-    today = date.today()
+            return times[:7]
+    today = now().date()
     return [today.isoformat(), (today + timedelta(days=1)).isoformat()]
 
 
@@ -305,7 +329,17 @@ def is_stale(snapshot: dict[str, Any], ttl_minutes: float | None = None,
         ttl_minutes = float(config.load_thresholds().get("snapshot_ttl_minutes", 120))
     generated = datetime.fromisoformat(snapshot["generated_at"])
     age = ((reference or now()) - generated).total_seconds() / 60
-    return age < -5 or age > ttl_minutes
+    if age < -5 or age > ttl_minutes:
+        return True
+    used = {p.get('source') for block in snapshot.get('forecast',{}).values() if isinstance(block,dict)
+            for loc in block.get('locations',[]) for p in loc.get('field_provenance',{}).values() if p.get('source')}
+    for source in snapshot.get('sources',[]):
+        if source.get('name') in used:
+            fetched=datetime.fromisoformat(source['fetched_at'])
+            source_age=((reference or now())-fetched).total_seconds()/60 + source.get('age_minutes',0)
+            if source.get('status') not in {'ok','cached'} or source_age < -5 or source_age > ttl_minutes:
+                return True
+    return False
 
 
 # ---------------------------------------------------------------------------

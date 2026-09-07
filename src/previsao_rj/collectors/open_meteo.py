@@ -1,6 +1,6 @@
 """Coletor meteorologico multi-modelo e multi-ponto.
 
-Plano Mestre secoes 5.1 e 12.1: ECMWF IFS como modelo principal, modelos
+Plano Mestre secoes 5.1 e 12.1: Modelo principal configurável, modelos
 secundarios do proprio Open-Meteo apenas para COMPARACAO (a concordancia entre
 eles vira o criterio de maior peso do score de confianca, secao 5.2).
 
@@ -10,6 +10,7 @@ devolve uma lista na mesma ordem em que os pontos foram enviados.
 from __future__ import annotations
 
 from typing import Any, Iterable
+import json
 
 import requests
 
@@ -46,7 +47,7 @@ def _params(locations: list[dict[str, Any]], model: str, timezone_name: str) -> 
         "latitude": ",".join(f"{l['latitude']:.4f}" for l in locations),
         "longitude": ",".join(f"{l['longitude']:.4f}" for l in locations),
         "timezone": timezone_name,
-        "forecast_days": 3,
+        "forecast_days": 7,
         "models": model,
         "daily": ",".join(DAILY_FIELDS),
         "hourly": ",".join(HOURLY_FIELDS),
@@ -75,7 +76,7 @@ def fetch_model(
         SOURCE,
         spec["endpoint"],
         _params(locations, model, timezone_name),
-        cache_key=f"{model}|" + ",".join(l["id"] for l in locations),
+        cache_key=json.dumps(_params(locations, model, timezone_name), sort_keys=True),
         session=session,
     )
     if result.usable or result.status == "degraded":
@@ -101,7 +102,7 @@ def fetch_all_models(
     session: requests.Session | None = None,
 ) -> dict[str, SourceResult]:
     """Modelo principal + secundarios. O principal define os numeros publicados;
-    os secundarios so entram no calculo de concordancia."""
+    os secundarios completam campos ausentes e entram no calculo de concordancia."""
     spec = config.source(SOURCE)
     models = spec.get("models") or {}
     primary = models.get("primary", "ecmwf_ifs025")
@@ -178,3 +179,4 @@ def fetch_point(latitude: float, longitude: float,
     }, timeout=int(spec.get("timeout_seconds", 25)))
     response.raise_for_status()
     return response.json()
+

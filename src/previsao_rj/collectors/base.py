@@ -8,6 +8,7 @@ o normalizador copia para o bloco `sources` do snapshot.
 from __future__ import annotations
 
 import json
+import hashlib
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
@@ -63,7 +64,7 @@ def not_collected(name: str, reason: str = "fonte desligada em fontes.yaml") -> 
 
 
 def _cache_path(name: str, key: str) -> Path:
-    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in key)[:120]
+    safe = hashlib.sha256(key.encode()).hexdigest()
     return CACHE_DIR / name / f"{safe}.json"
 
 
@@ -160,3 +161,4 @@ def is_fresh(result: SourceResult, source_name: str, reference: datetime | None 
     fetched = datetime.fromisoformat(result.fetched_at)
     age = ((reference or now()) - fetched).total_seconds() / 60 + result.age_minutes
     return age <= float(ttl)
+

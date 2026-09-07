@@ -37,7 +37,7 @@ sources:
 
   open_meteo_marine:
     layer: mar
-    enabled: false                   # entra na etapa "Vai dar praia?" (secao 10.1)
+    enabled: true                    # ondas modeladas; balneabilidade continua obrigatória
     role: principal
     endpoint: "https://marine-api.open-meteo.com/v1/marine"
     timeout_seconds: 25
@@ -145,3 +145,4 @@ sources:
 forbidden_weather_sources:
   - alerta_rio
   - cor_rio
+

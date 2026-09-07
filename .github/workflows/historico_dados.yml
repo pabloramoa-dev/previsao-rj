@@ -69,31 +69,16 @@ jobs:
 
       - name: Resumo com o contraste do dia
         run: |
-          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json, glob
-          d = json.load(open('output/snapshot.json', encoding='utf-8'))
-          c = d['confidence']
-          locs = d['forecast']['today']['locations']
-          maxs = [e['max_c'] for e in locs]
-          probs = [e['rain_probability_pct'] for e in locs]
-          dt, dp = max(maxs) - min(maxs), max(probs) - min(probs)
-          hist = len(glob.glob('data/snapshots/*.json'))
-          print(f"## {d['forecast']['today']['date']} — {hist} snapshots no historico\n")
-          print(f"- modelo principal: `{d['forecast']['primary_model']}`")
-          print(f"- confianca: **{c['score']}/100** ({c['level']})")
-          print(f"- consistencia temporal: {c['parts']['temporal_consistency']}/15")
-          print(f"- **contraste termico entre zonas: {dt} C** ({min(maxs)}..{max(maxs)})")
-          print(f"- **contraste de chuva entre zonas: {dp} p.p.** ({min(probs)}..{max(probs)})")
-          pauta = "SIM" if dt >= 4 or dp >= 30 else "nao"
-          print(f"- dia com pauta de contraste: **{pauta}**\n")
-          print("| local | zona | min | max | chuva |")
-          print("|---|---|---|---|---|")
-          for e in locs:
-              print(f"| {e['name']} | {e['zone']} | {e['min_c']}° | {e['max_c']}° | {e['rain_probability_pct']}% |")
-          PY
+          python -m scripts.snapshot_summary output/snapshot.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Avaliar pautas sem publicar
+        run: python -m scripts.editorial_scan output/snapshot.json
 
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-${{ github.run_id }}
-          path: output/snapshot.json
+          path: |
+            output/snapshot.json
+            output/editorial_queue.json
           retention-days: 30
+

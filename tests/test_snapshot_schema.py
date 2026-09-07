@@ -28,7 +28,7 @@ def test_blocos_obrigatorios_do_plano(snapshot):
                   "forecast", "observed", "marine", "beach_status", "events",
                   "football", "mobility", "confidence", "sources"):
         assert chave in snapshot, f"bloco ausente: {chave}"
-    assert snapshot["schema_version"] == "2.0"
+    assert snapshot["schema_version"] == "2.1"
     assert snapshot["forecast"]["today"]["date"] < snapshot["forecast"]["tomorrow"]["date"]
 
 
@@ -123,3 +123,4 @@ def test_gate_de_frescor_do_snapshot(snapshot):
     assert not snap.is_stale(snapshot, ttl_minutes=120)
     futuro = now() + timedelta(minutes=200)
     assert snap.is_stale(snapshot, ttl_minutes=120, reference=futuro)
+
