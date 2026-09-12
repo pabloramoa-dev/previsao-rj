@@ -115,11 +115,19 @@ def get_json(
         payload, age = cached
         return SourceResult(source_name, "cached", payload=payload, age_minutes=round(age, 1))
 
+    # Fonte que exige identificacao (a met.no devolve 403 sem User-Agent)
+    # declara `user_agent` em fontes.yaml em vez de embutir o header no coletor.
+    headers: dict[str, str] = {}
+    agent = spec.get("user_agent")
+    if agent:
+        headers["User-Agent"] = agent
+
     http = session or requests
     last_error = ""
     for attempt in range(retries + 1):
         try:
-            response = http.get(url, params=params, timeout=timeout)
+            response = http.get(url, params=params, timeout=timeout,
+                                headers=headers or None)
             response.raise_for_status()
             payload = response.json()
             write_cache(source_name, key, payload)
@@ -161,4 +169,3 @@ def is_fresh(result: SourceResult, source_name: str, reference: datetime | None 
     fetched = datetime.fromisoformat(result.fetched_at)
     age = ((reference or now()) - fetched).total_seconds() / 60 + result.age_minutes
     return age <= float(ttl)
-
