@@ -9,8 +9,8 @@
 # entra no snapshot com status "not_collected" (secao 17.3).
 
 meta:
-  version: 1
-  updated_at: "2026-09-07"
+  version: 2
+  updated_at: "2026-09-12"
 
 defaults:
   timeout_seconds: 25
@@ -34,6 +34,21 @@ sources:
     cache_ttl_minutes: 30
     freshness_ttl_minutes: 120       # snapshot mais velho que isso nao publica
     fallback: secondary_model        # se o ECMWF falhar, usa modelo secundario e marca fallback_used
+
+  met_no_forecast:
+    layer: previsao
+    enabled: true
+    role: provedor_independente     # segunda opiniao real: outro instituto, outra infra
+    endpoint: "https://api.met.no/weatherapi/locationforecast/2.0/compact"
+    user_agent: "previsaorj/1.0 github.com/pabloramoa-dev/previsao-rj"
+    timeout_seconds: 20
+    retries: 2
+    cache_ttl_minutes: 30
+    freshness_ttl_minutes: 180
+    fallback: none
+    # Nao fornece rajada, probabilidade de chuva nem UV nesta latitude: esses
+    # campos ficam AUSENTES no snapshot em vez de virar zero (secao 17.3).
+    campos_ausentes: [wind_gusts_10m_max, precipitation_probability_max, uv_index_max]
 
   open_meteo_marine:
     layer: mar
@@ -145,4 +160,3 @@ sources:
 forbidden_weather_sources:
   - alerta_rio
   - cor_rio
-
