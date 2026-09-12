@@ -69,7 +69,7 @@ jobs:
             output/personagens/work_*/conteudo.json
             output/stories/*.png
             output/cast/**/*.png
-            output/editorial_queue.json
+            data/editorial_queue.json
             output/snapshot.json
           if-no-files-found: warn
           retention-days: 14
