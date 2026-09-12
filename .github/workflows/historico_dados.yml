@@ -82,7 +82,7 @@ jobs:
           name: snapshot-${{ github.run_id }}
           path: |
             output/snapshot.json
-            output/editorial_queue.json
+            data/editorial_queue.json
             output/stories/*.png
           retention-days: 30
 
