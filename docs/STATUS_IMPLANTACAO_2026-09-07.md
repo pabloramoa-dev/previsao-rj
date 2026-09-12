@@ -58,3 +58,23 @@ Referências primárias consultadas: [Open-Meteo Marine](https://open-meteo.com/
 - Oito Stories gerados. Coleta usada no último teste: oito localidades, confiança 63/100. Os arquivos são registros dessa coleta, não uma previsão permanentemente atualizada.
 - Workflow manual alinhado com Bira/Bia. O modo fixture usa demonstração e continua impedido de publicar.
 - A conexão GitHub disponível não permite consultar/configurar secrets ou variables por suas rotas de API. Portanto, esta rodada não confirmou as credenciais Meta do RJ e não publicou no Instagram. Nenhum cron de publicação foi ativado.
+
+## Atualização 12/09/2026 — credenciais, fila e provedor independente
+
+Esta seção não reescreve o balanço acima; registra o que mudou depois dele.
+
+**Pendência 4 — encerrada.** App próprio da Meta criado e exclusivo da conta (`Previsao RJ bot`), rota "API do Instagram com login do Instagram", três permissões e nada além: `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_insights`. Conta aceita como Testador do Instagram. Secrets `IG_USER_ID` e `IG_ACCESS_TOKEN` gravados e validados de ponta a ponta pelo workflow de saúde, sem publicar. Falta apenas a publicação do primeiro Reel controlado, que é decisão humana. Acrescentado `token_refresh.yml`, que renova o token de 60 dias e regrava o secret com um PAT restrito a este repositório.
+
+**Pendência 6 — encerrada.** A fila do motor editorial virou o estado persistente do publicador, versionada em `data/editorial_queue.json`. Ela morava em `output/`, que o `.gitignore` descarta: nenhuma execução via o que a anterior tinha feito, e por isso os vetos de duplicata e de gancho repetido nunca chegavam a disparar — o histórico vinha de um arquivo que nenhum código escrevia. O ciclo agora é `ready → publishing → published`, com `release` quando é certo que nada foi ao ar e `unknown` quando a mídia pode existir. Item em `unknown` nunca é retentado sozinho: espera conferência humana.
+
+**Pendências 2 e 3 — encerradas como não aplicáveis, sem implementação.**
+
+O INMET fechou o acesso programático às leituras: além do HTTP 204 já registrado no balanço, o painel oficial passou a exigir reCAPTCHA no `POST /estacao/front/`. Não se contorna CAPTCHA, e um coletor apoiado nisso quebraria na primeira mudança da página. O CEMADEN não resolveu sequer o host a partir do ambiente de execução. O INEA publica balneabilidade em boletim, não em API, e a DHN publica avisos em texto — raspagem de documento, com a fragilidade que isso implica.
+
+A decisão foi guiada pelo pipeline irmão, que opera há meses: ele não usa nenhuma dessas fontes e não sente falta. A regra adotada é usar apenas fonte com acesso estável e comprovado.
+
+Consequências assumidas, e são reais: o critério "observação compatível" (§5.2, peso 20) continua valendo zero e o teto do score de confiança permanece 80, como o código já registra em `notes`; e o formato `vai_dar_praia` segue vetado por `balneabilidade_oficial_indisponivel`, porque o plano proíbe estimativa própria de balneabilidade. O veto está funcionando, não falhando.
+
+**Novo: provedor independente.** ICON, ECMWF e GFS vinham todos pelo Open-Meteo — mesma casa, mesmo pipeline, mesmo endpoint. A "concordância entre modelos", critério de maior peso do score, nunca foi entre provedores, e uma queda do Open-Meteo levava os três juntos. Foi acrescentada a **MET Norway** (`locationforecast/2.0/compact`), o mesmo endpoint já em produção no pipeline irmão, exigindo `User-Agent` identificado.
+
+Ela contribui para a concordância de temperatura e serve de rede de proteção: sem nenhum modelo do Open-Meteo utilizável, o snapshot ainda sai, marcado como fallback. O que a met.no não fornece nesta latitude — rajada, probabilidade de chuva e índice UV — fica **ausente** do snapshot, nunca zerado: zero seria uma afirmação, e a ausência deixa o normalizador cair no provedor que tem o dado.
