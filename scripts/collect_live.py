@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 from src.previsao_rj import config
-from src.previsao_rj.collectors import observations, open_meteo, marine
+from src.previsao_rj.collectors import met_no, observations, open_meteo, marine
 from src.previsao_rj.normalizers import snapshot as snap
 
 
@@ -30,6 +30,10 @@ def main() -> None:
         raise SystemExit(f"nenhum local no tier {args.tier}")
 
     collected = open_meteo.fetch_all_models(locations)
+    # Provedor independente entra como mais um "modelo": e o que faz a
+    # concordancia da secao 5.2 medir divergencia entre PROVEDORES, e nao so
+    # entre modelos servidos pelo mesmo lugar.
+    collected.update(met_no.collect(locations))
     observed = observations.collect(locations)
 
     previous = None
@@ -64,4 +68,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
