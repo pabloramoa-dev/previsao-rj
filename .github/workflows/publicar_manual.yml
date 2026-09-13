@@ -16,13 +16,59 @@ on:
         description: "Publicar no @previsaorj? Desmarcado = somente artifact"
         type: boolean
         default: false
+  # Uma vez só: o primeiro Reel real do @previsaorj, 07:07 de 13/09/2026
+  # (America/Sao_Paulo). O cron volta todo 13 de setembro, então o job `janela`
+  # confere a data — em qualquer outro ano o Reel é PULADO, nunca publicado.
+  # Depois do go-live quem publica todo dia é o reel_manha.yml; este bloco pode
+  # ser removido.
+  schedule:
+    - cron: "7 10 13 9 *"
 permissions:
   contents: write
 concurrency:
   group: previsao-rj-publicacao
   cancel-in-progress: false
 jobs:
+  janela:
+    runs-on: ubuntu-latest
+    outputs:
+      seguir: ${{ steps.decidir.outputs.seguir }}
+      fonte: ${{ steps.decidir.outputs.fonte }}
+      personagem: ${{ steps.decidir.outputs.personagem }}
+      publicar: ${{ steps.decidir.outputs.publicar }}
+    steps:
+      - name: Decidir o que esta execução vai fazer
+        id: decidir
+        env:
+          EVENTO: ${{ github.event_name }}
+          IN_FONTE: ${{ inputs.fonte }}
+          IN_PERSONAGEM: ${{ inputs.personagem }}
+          IN_PUBLICAR: ${{ inputs.publicar }}
+        run: |
+          set -euo pipefail
+          # Disparo manual: valem as caixinhas que a pessoa marcou.
+          if [ "$EVENTO" != "schedule" ]; then
+            { echo "seguir=sim"
+              echo "fonte=$IN_FONTE"
+              echo "personagem=$IN_PERSONAGEM"
+              echo "publicar=$IN_PUBLICAR"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Agendamento: o cron não sabe de ano, então a data é conferida aqui.
+          HOJE=$(TZ=America/Sao_Paulo date +%F)
+          if [ "$HOJE" != "2026-09-13" ]; then
+            echo "Agendamento de uma vez só, combinado para 2026-09-13; hoje é $HOJE. Nada a fazer."
+            echo "seguir=nao" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          { echo "seguir=sim"
+            echo "fonte=live"
+            echo "personagem=bira"
+            echo "publicar=true"; } >> "$GITHUB_OUTPUT"
+
   reel:
+    needs: janela
+    if: needs.janela.outputs.seguir == 'sim'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -44,28 +90,40 @@ jobs:
           python scripts/isolation_guard.py
           python -m pytest -q
       - name: Bloquear publicação com fixture
-        if: ${{ inputs.publicar && inputs.fonte != 'live' }}
+        if: ${{ needs.janela.outputs.publicar == 'true' && needs.janela.outputs.fonte != 'live' }}
         run: |
           echo "PUBLICAÇÃO BLOQUEADA: dados de fixture nunca vão para o feed."
           exit 1
       - name: Coletar dados ao vivo
-        if: ${{ inputs.fonte == 'live' }}
+        if: ${{ needs.janela.outputs.fonte == 'live' }}
         run: python -m scripts.collect_live output/snapshot.json
       - name: Usar fixture técnica
-        if: ${{ inputs.fonte == 'fixture' }}
+        if: ${{ needs.janela.outputs.fonte == 'fixture' }}
         run: |
           mkdir -p output
           cp tests/fixtures/snapshot_rj.json output/snapshot.json
       - name: Demonstração sem previsão de produção
-        if: ${{ inputs.fonte == 'fixture' }}
-        run: python -m src.previsao_rj.render.characters.pipeline --demo --personagem ${{ inputs.personagem }} --out output/REEL.mp4
+        if: ${{ needs.janela.outputs.fonte == 'fixture' }}
+        run: python -m src.previsao_rj.render.characters.pipeline --demo --personagem ${{ needs.janela.outputs.personagem }} --out output/REEL.mp4
       - name: Render com dados atuais
-        if: ${{ inputs.fonte == 'live' }}
-        run: python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem ${{ inputs.personagem }} --out output/REEL.mp4
+        if: ${{ needs.janela.outputs.fonte == 'live' }}
+        run: python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem ${{ needs.janela.outputs.personagem }} --out output/REEL.mp4
       - name: Legenda
         run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
+      - name: Mostrar roteiro e legenda no resumo
+        run: |
+          {
+            echo '## Legenda'
+            echo '```'
+            cat output/LEGENDA.txt 2>/dev/null || echo '(sem legenda)'
+            echo '```'
+            echo '## Roteiro falado'
+            echo '```'
+            cat output/work_*/roteiro.txt 2>/dev/null || echo '(sem roteiro)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Avaliar pautas e atualizar a fila persistente
-        if: ${{ inputs.fonte == 'live' }}
+        if: ${{ needs.janela.outputs.fonte == 'live' }}
         run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
 
       - name: QA
@@ -76,22 +134,22 @@ jobs:
           path: output/
           retention-days: 14
       - name: Verificar Meta e conta de destino
-        if: ${{ inputs.publicar }}
+        if: ${{ needs.janela.outputs.publicar == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
           EXPECTED_IG_USERNAME: previsaorj
         run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print('destino:',verify_destination().get('username'))"
       - name: Exigir repositório público para Release usado pela Meta
-        if: ${{ inputs.publicar }}
+        if: ${{ needs.janela.outputs.publicar == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           V=$(gh repo view "${{ github.repository }}" --json visibility -q .visibility)
           test "$V" = "PUBLIC" || { echo "PUBLICAÇÃO BLOQUEADA: Release de repo privado não é URL pública para a Meta."; exit 1; }
       - name: Hospedar MP4 em Release temporário
-        if: ${{ inputs.publicar }}
+        if: ${{ needs.janela.outputs.publicar == 'true' }}
         id: media
         env:
           GH_TOKEN: ${{ github.token }}
@@ -100,11 +158,11 @@ jobs:
           gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Piloto controlado @previsaorj"
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
       - name: Publicar Reel controlado
-        if: ${{ inputs.publicar }}
+        if: ${{ needs.janela.outputs.publicar == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
           EXPECTED_IG_USERNAME: previsaorj
         run: |
           python -m src.previsao_rj.publish.cli \
@@ -114,7 +172,7 @@ jobs:
             --publish
 
       - name: Persistir a fila no repositorio
-        if: ${{ always() && inputs.publicar && inputs.fonte == 'live' }}
+        if: ${{ always() && needs.janela.outputs.publicar == 'true' && needs.janela.outputs.fonte == 'live' }}
         run: |
           set -euo pipefail
           test -f data/editorial_queue.json || { echo "sem fila para persistir"; exit 0; }
