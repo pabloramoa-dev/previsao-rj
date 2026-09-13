@@ -1,0 +1,7 @@
+# Dependencias do webhook de atendimento (Render). Deliberadamente pequenas:
+# o plano free tem 512 MB de RAM, e tudo que sobe aqui divide espaco com as
+# respostas. Manim, Kokoro e numpy NAO entram — quem renderiza Reel e o Actions.
+flask>=3.0,<4
+gunicorn>=21.2,<24
+requests>=2.32,<3
+PyYAML>=6,<7
