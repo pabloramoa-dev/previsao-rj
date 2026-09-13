@@ -1,0 +1,41 @@
+# Blueprint do atendimento do @previsaorj: comentario, DM e mensagem de voz.
+#
+# O servico roda a partir da raiz do repositorio (e nao de uma subpasta) porque
+# o webhook le config/locais_rj.yaml e importa o resolver geografico de
+# src/previsao_rj/geo — a mesma fonte de verdade que a esteira de Reels usa.
+# Duas listas de bairro sairiam do compasso em uma semana.
+#
+# Sem banco de dados: o radar colaborativo vive em memoria do processo. Para
+# torna-lo persistente depois, basta criar um Postgres, apontar DATABASE_URL
+# para ele e acrescentar psycopg[binary] em requirements/atendimento.txt.
+services:
+  - type: web
+    name: previsaorj-atendimento
+    runtime: python
+    plan: free
+    region: ohio
+    buildCommand: pip install -r requirements/atendimento.txt
+    startCommand: >-
+      gunicorn previsao_rj.atendimento.app:app
+      --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60
+    healthCheckPath: /ping
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: PYTHONPATH
+        value: src
+      - key: EXPECTED_IG_USERNAME
+        value: previsaorj
+      - key: META_GRAPH_VERSION
+        value: v22.0
+      # Os quatro valores abaixo sao gravados a mao no painel do Render.
+      - key: IG_VERIFY_TOKEN
+        sync: false
+      - key: IG_ACCESS_TOKEN
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: RADAR_HASH_SALT
+        generateValue: true
