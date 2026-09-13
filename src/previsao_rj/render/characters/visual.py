@@ -603,10 +603,19 @@ def apontar(v, janelas, alvo=UP * 2.2 + RIGHT * 1.6, dur=1.4):
 
     Pose calculada por inteiro a cada frame a partir de `f` e reconstruída com
     `become` — nunca incremental, senão o braço não volta e o loop quebra.
+
+    A pose é ancorada na CABEÇA, não numa coordenada fixa do quadro. A primeira
+    versão guardava a posição absoluta da mão e a reescrevia todo frame; quando
+    `sair_de_cena` levava o personagem para fora, a mão era puxada de volta ao
+    ponto antigo e sobrava um braço esticado no meio da tela — o mesmo conflito
+    que o docstring de `sair_de_cena` descreve: dois updaters escrevendo
+    posição absoluta brigam. Guardando o deslocamento em relação à cabeça, a
+    pose viaja junto com o corpo e continua exata no retorno.
     """
     mao = v["maoD"]
+    cab = v["cab"]
     base = mao.copy()
-    p0 = mao.get_center()
+    repouso = mao.get_center() - cab.get_center()
     st = {"t": 0.0}
 
     def _apontar(mo, dt):
@@ -616,7 +625,7 @@ def apontar(v, janelas, alvo=UP * 2.2 + RIGHT * 1.6, dur=1.4):
             d = st["t"] - ini
             if 0 <= d < dur:
                 f = max(f, np.sin(d / dur * PI) ** 0.6)
-        mo.become(base.copy().move_to(p0 + alvo * f))
+        mo.become(base.copy().move_to(cab.get_center() + repouso + alvo * f))
     mao.add_updater(_apontar)
 
 
