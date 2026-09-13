@@ -1,10 +1,69 @@
 """Cinco formatos com validação de dados antes de produzir a fala."""
 from datetime import timedelta
+from .contrast import regional_contrast
 from .engine import evaluate, stamp
 from .script import build_script, number
 
 TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA ONDE?',
           'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?'}
+
+
+def batida(fala, tipo='nenhum', **dados):
+    return {'fala': fala, 'legenda': fala, 'tipo': tipo, 'dados': dados}
+
+
+def rio_antes_de_sair(snapshot, incerto):
+    """Batidas com cartao proprio, em vez de um paragrafo sobre o apresentador.
+
+    O formato devolvia UMA fala com tipo 'nenhum': o render nao tinha o que
+    desenhar e o Reel virava locucao sobre fundo parado. Agora cada informacao
+    tem a sua batida e o seu cartao — e nenhuma batida nasce sem o dado que ela
+    mostra, entao coleta incompleta encurta o Reel em vez de inventar numero.
+    """
+    dados = build_script(snapshot)
+    locs = snapshot['forecast']['today']['locations']
+    quente, frio, chuvoso = dados['hottest'], dados['coolest'], dados['wettest']
+    contraste = regional_contrast(locs)
+    # Abre SEM cartao de proposito. Gancho, resumo e CTA sao altos e tiram o
+    # apresentador de cena; se todas as batidas fossem dessas, a locucao inteira
+    # sairia sobre um cenario vazio. A abertura e o aviso de incerteza sao as
+    # batidas em que ele aparece.
+    batidas = [batida('Antes de sair de casa, veja como fica o tempo no Rio hoje.')]
+    if incerto:
+        batidas.append(batida('O cenário ainda tem incerteza. Há possibilidade de mudança.'))
+    if contraste['temperature']['relevant']:
+        vao = contraste['temperature']['spread']
+        batidas.append(batida(
+            f"Hoje a temperatura muda pela região: {vao:g} graus separam "
+            f"{quente['name']} de {frio['name']}.",
+            'gancho', numero=f'{vao:g}°', sub='DE DIFERENÇA NA REGIÃO'))
+    else:
+        batidas.append(batida(
+            f"No Rio, a máxima prevista chega a {quente['max_c']:g} graus em {quente['name']}.",
+            'gancho', numero=f"{quente['max_c']:g}°", sub='MÁXIMA PREVISTA HOJE'))
+    cidades = [{'nome': e['name'], 'min': e['min_c'], 'max': e['max_c']}
+               for e in locs if number(e.get('min_c')) and number(e.get('max_c'))]
+    if cidades:
+        batidas.append(batida(
+            f"As máximas ficam entre {frio['max_c']:g} e {quente['max_c']:g} graus "
+            'nos pontos consultados.',
+            'resumo', cidades=cidades[:5], titulo='HOJE NA REGIÃO'))
+    if chuvoso:
+        pct = chuvoso['rain_probability_pct']
+        batidas.append(batida(
+            f"Em {chuvoso['name']}, a chance de chuva no dia é de {pct:g} por cento. "
+            'Não significa chuva o dia inteiro.',
+            'gancho', numero=f'{pct:g}%', sub='CHANCE DE CHUVA'))
+    else:
+        batidas.append(batida('A probabilidade de chuva não está disponível nesta coleta.'))
+    if contraste['gust']['relevant']:
+        alta = contraste['gust']['high']
+        batidas.append(batida(
+            f"Atenção ao vento: rajadas de até {alta['value']:g} quilômetros por hora "
+            f"em {alta['name']}.",
+            'alerta', titulo='VENTO', detalhe=f"até {alta['value']:g} km/h em {alta['name']}"))
+    batidas.append(batida('Confira a atualização antes de sair. Previsão RJ.', 'cta'))
+    return batidas
 
 
 def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
@@ -13,10 +72,11 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
         raise ValueError(f'Formato {format} sem candidato válido e atualizado')
     candidate = options[0]
     locs = [e for e in snapshot['forecast']['today']['locations'] if e['id'] in candidate['location_ids']]
-    lines = []
     if format == 'rio_antes_de_sair':
-        lines = [build_script(snapshot)['narration']]
-    elif format == 'chove_onde':
+        return {'title': TITLES[format], 'candidate': candidate, 'publication': False,
+                'beats': rio_antes_de_sair(snapshot, candidate['language'] == 'probabilistic')}
+    lines = []
+    if format == 'chove_onde':
         topic = candidate['topic']
         metric, unit = {'temperatura':('max_c','graus'), 'vento':('wind_gust_max_kmh','quilômetros por hora'),
                         'chuva':('rain_probability_pct','por cento')} .get(topic, ('rain_mm', 'milímetros'))
@@ -65,6 +125,6 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
         lines.append('A previsão do tempo não determina segurança para banho. Confira a sinalização e os avisos locais.')
     if not lines: raise ValueError('Nenhuma fala sustentada pelos dados')
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
-    if format!='rio_antes_de_sair': lines.append('Previsão RJ. Confira a atualização antes de sair.')
-    beats=[{'fala':line,'legenda':line,'tipo':'nenhum','dados':{}} for line in lines]
+    lines.append('Previsão RJ. Confira a atualização antes de sair.')
+    beats=[batida(line) for line in lines]
     return {'title':TITLES[format], 'candidate':candidate,'beats':beats,'publication':False}
