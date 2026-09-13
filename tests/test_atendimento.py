@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from previsao_rj.atendimento import dados, interacao, radar, resposta, voz
-from previsao_rj.atendimento.roupa import recomendar
+from src.previsao_rj.atendimento import dados, interacao, radar, resposta, voz
+from src.previsao_rj.atendimento.roupa import recomendar
 
 PREVISAO = {
     "tmin": 21.0, "tmax": 33.0, "prob_chuva": 20.0, "rajada_kmh": 18.0,
