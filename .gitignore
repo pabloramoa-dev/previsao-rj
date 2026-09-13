@@ -12,3 +12,5 @@ output/*.json
 output/.cache/
 output/work_*/
 output/media/
+# manim cria isto ao ser rodado da raiz do repositorio
+media/
