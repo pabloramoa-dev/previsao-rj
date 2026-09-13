@@ -5,7 +5,9 @@ import os, time, requests, hashlib
 def _cfg():
     user = os.environ.get("IG_USER_ID")
     token = os.environ.get("IG_ACCESS_TOKEN")
-    version = os.environ.get("META_GRAPH_VERSION", "v26.0")
+    # `or`, nao default do get: o workflow injeta a variavel mesmo quando ela
+    # nao existe no repositorio, e ai o valor chega vazio em vez de ausente.
+    version = os.environ.get("META_GRAPH_VERSION") or "v26.0"
     expected = os.environ.get("EXPECTED_IG_USERNAME", "previsaorj").lstrip("@").casefold()
     if not user or not token:
         raise RuntimeError("IG_USER_ID/IG_ACCESS_TOKEN ausentes")
