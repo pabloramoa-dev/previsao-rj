@@ -177,7 +177,13 @@ class Piloto(MovingCameraScene):
             if excesso > 0:
                 G.shift(DOWN * excesso)
         sombra = Ellipse(width=1.7, height=0.18, fill_color=BLACK, fill_opacity=0.18, stroke_width=0)
-        sombra.move_to([0, G.get_bottom()[1] + 0.04, 0])
+        y_sombra = G.get_bottom()[1] + 0.04
+        sombra.move_to([0, y_sombra, 0])
+        # A sombra segue o X do personagem em vez de ficar parada: quando ele sai
+        # de cena pro cartaz, uma elipse cinza sozinha no chao lia como defeito.
+        # Seguir a posicao (em vez de viajar na lista de sair_de_cena) funciona
+        # com qualquer numero de janelas, inclusive sobrepostas.
+        sombra.add_updater(lambda m: m.move_to([G.get_center()[0], y_sombra, 0]))
         self.add(sombra, G)
         P.conectar_bracos(v)
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
