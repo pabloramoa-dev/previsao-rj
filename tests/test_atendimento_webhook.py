@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from previsao_rj.atendimento import app as webhook
-from previsao_rj.atendimento import dados, radar
+from src.previsao_rj.atendimento import app as webhook
+from src.previsao_rj.atendimento import dados, radar
 
 PREVISAO = {
     "tmin": 20.0, "tmax": 31.0, "prob_chuva": 30.0, "rajada_kmh": 15.0,
