@@ -36,6 +36,7 @@ from src.previsao_rj.render.characters import visual as P
 from src.previsao_rj.render.characters import core as L
 from src.previsao_rj.render.characters import lip as LIP
 from src.previsao_rj.render.characters import rj_cast as RJ
+from src.previsao_rj.render.characters import layout as LAY
 config.frame_width = 8.0
 config.frame_height = 14.222
 config.pixel_width = 1080
@@ -50,9 +51,11 @@ CALOR = CONT.get('calor', False)
 EH_JUAREZ = PERSONAGEM == 'juarez'
 COM_GUARDA_CHUVA = PERSONAGEM not in ('maria', 'juarez')
 FIM = SEGS[-1]['fim']
-Y_PAINEL = 4.5
-Y_SELO = 3.95
-Y_RESUMO = 1.2
+# Geometria vertical: ver render/characters/layout.py, que e testado no CI.
+TOPO_PAINEL = LAY.TOPO_PAINEL
+Y_MARCA = LAY.Y_MARCA
+Y_SELO = LAY.Y_SELO
+Y_CENTRAL = LAY.Y_CENTRAL
 Y_LEGENDA = -4.45
 TETO_CENA = 3.25
 LIMPO = 0.3
@@ -185,12 +188,18 @@ class Piloto(MovingCameraScene):
             if jw:
                 P.apontar(v, jw)
         extras = P.vestir(self, v, CENARIO, janelas_frio=janelas('tremer') or None, janelas_calor=janelas('abanar') or None, janelas_beber=janelas('beber') or None, com_guarda_chuva=COM_GUARDA_CHUVA)
-        self.add(P.marca_dagua().move_to([0, 5.25, 0]))
-        janela_resumo = [(SEGS[i]['ini'], SEGS[i]['fim']) for i, b in enumerate(BATIDAS) if i < len(SEGS) and b['tipo'] == 'resumo']
-        if janela_resumo:
-            r_ini, r_fim = janela_resumo[0]
+        self.add(P.marca_dagua().move_to([0, Y_MARCA, 0]))
+        # Resumo, gancho e CTA ocupam o centro da tela. Sem tirar o apresentador,
+        # o cartaz aparece em cima do rosto dele — que foi o defeito visto no
+        # primeiro ensaio. Janelas vizinhas sao fundidas para ele nao voltar ao
+        # quadro por meio segundo entre o gancho e o CTA.
+        janelas_sozinho = LAY.juntar_janelas(
+            [(SEGS[i]['ini'], SEGS[i]['fim']) for i, b in enumerate(BATIDAS)
+             if i < len(SEGS) and b['tipo'] in LAY.SOZINHOS])
+        if janelas_sozinho:
             juntos = [G] + [extras[k] for k in ('guarda_chuva', 'cachecol') if k in extras]
-            P.sair_de_cena(G, juntos, r_ini, r_fim)
+            for s_ini, s_fim in janelas_sozinho:
+                P.sair_de_cena(G, juntos, s_ini, s_fim)
         P.camera_push_in(self, dur=2.0, duracao=FIM - LIMPO)
         paineis = []
         for i, b in enumerate(BATIDAS):
@@ -202,21 +211,21 @@ class Piloto(MovingCameraScene):
             if m is None:
                 continue
             if b['tipo'] in ('gancho', 'cta'):
-                m.move_to([0, 1.2, 0])
-            elif b['tipo'] == 'resumo':
-                m.move_to([0, Y_RESUMO, 0])
+                m.move_to([0, Y_CENTRAL, 0])
             else:
-                m.move_to([0, Y_PAINEL, 0])
+                # Ancora pela borda de cima: a altura do cartao varia de 0.7 a
+                # 5.5, e centralizar fazia o cartao alto invadir a marca.
+                m.shift([0, TOPO_PAINEL - m.get_top()[1], 0])
             paineis.append((ini, fim, m))
         self.add(P.trilha_temporal(paineis, pop=0.2))
         destaque = CONT.get('destaque')
         if destaque:
             fim_selo = FIM - LIMPO
             for i, b in enumerate(BATIDAS):
-                if i == 0 or i >= len(SEGS):
+                if i >= len(SEGS):
                     continue
                 if b['tipo'] in ('gancho', 'cta'):
-                    continue
+                    continue  # ficam no centro: nao disputam espaco com o selo
                 if painel(b['tipo'], b.get('dados') or {}) is not None:
                     fim_selo = max(SEGS[i]['ini'], ABERTURA)
                     break
@@ -259,4 +268,3 @@ class Piloto(MovingCameraScene):
             stb['o'] = novo
         beng.add_updater(_bengala)
         self.wait(FIM)
-
