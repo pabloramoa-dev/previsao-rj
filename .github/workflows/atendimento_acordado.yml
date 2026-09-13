@@ -1,0 +1,30 @@
+# O plano free do Render suspende o servico apos 15 minutos sem trafego, e a
+# volta leva perto de um minuto. Webhook que demora um minuto para responder e
+# webhook que a Meta considera fora do ar — e o seguidor fica sem resposta.
+#
+# Este ping de 10 em 10 minutos mantem o servico de pe. A URL vem da variable
+# ATENDIMENTO_URL (Settings > Variables), nao de secret: nao ha segredo em uma
+# URL publica de health check, e assim da para ver o que esta sendo chamado.
+name: Manter atendimento acordado
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar o webhook
+        env:
+          URL: ${{ vars.ATENDIMENTO_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "ATENDIMENTO_URL nao definida; nada a fazer."
+            exit 0
+          fi
+          codigo=$(curl -s -o /tmp/ping.json -w "%{http_code}" --max-time 90 "$URL/ping")
+          echo "HTTP $codigo"
+          cat /tmp/ping.json || true
+          test "$codigo" = "200"
