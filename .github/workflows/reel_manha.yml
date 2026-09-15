@@ -1,14 +1,242 @@
-name: Reel da manhã — Previsão RJ (AUTOMAÇÃO DESATIVADA)
-# ATIVAÇÃO SOMENTE APÓS PRIMEIRO REEL MANUAL REAL APROVADO.
+name: Reel da manhã — Previsão RJ
+
+# Publicação diária, uma por dia, de manhã.
+#
+# Por que TRÊS horários de cron e não um: o agendamento do GitHub atrasa. Em
+# setembro/2026 o histórico agendado para 06:00 rodou às 12:17, e o
+# agendamento do primeiro Reel (07:07 de 13/09) simplesmente não disparou. Com
+# uma tentativa só, um atraso desses publica a previsão da manhã à tarde — ou
+# não publica.
+#
+# Então são três tentativas antes das 6h e uma trava de idempotência: o
+# `escolher_pauta --exigir-inedito-hoje` lê a fila versionada e, se já existe
+# publicação com a data local de hoje, a execução sai por `seguir=nao` sem
+# falar com a Meta. A primeira tentativa que realmente disparar publica; as
+# outras conferem e saem em segundos.
+#
+# Cinto e suspensório: o `publish.cli` também recusa legenda equivalente já
+# publicada, então mesmo que o commit da fila falhe não sai Reel repetido.
+#
+# Chave geral: a variable AUTOMATION_ENABLED. Sem ela igual a 'true', nada
+# roda. É o rollback de um clique.
+
 on:
-  # schedule:
-  #   - cron: "35 9 * * 1-5"  # 06:35 America/Sao_Paulo; validar horário legal antes de ativar
+  schedule:
+    - cron: "30 7 * * *"   # 04:30 America/Sao_Paulo
+    - cron: "0 8 * * *"    # 05:00 America/Sao_Paulo
+    - cron: "30 8 * * *"   # 05:30 America/Sao_Paulo
+  # Gatilho externo opcional (cron-job.org ou outro), para quando o horário
+  # precisar ser exato: POST /repos/:owner/:repo/dispatches {"event_type":"reel_manha"}
+  repository_dispatch:
+    types: [reel_manha]
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar no @previsaorj? Desmarcado = só artifact"
+        type: boolean
+        default: true
+      ignorar_trava:
+        description: "Publicar mesmo que já tenha saído Reel hoje"
+        type: boolean
+        default: false
+
 permissions:
-  contents: read
+  contents: write
+
+# Mesmo grupo do publicar_manual.yml: nunca dois publicadores ao mesmo tempo.
+concurrency:
+  group: previsao-rj-publicacao
+  cancel-in-progress: false
+
 jobs:
-  guard:
+  reel:
     if: vars.AUTOMATION_ENABLED == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
-      - run: echo "AUTOMAÇÃO DESATIVADA. Use publicar_manual.yml até o go-live."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+
+      # As caixinhas do disparo manual valem só no disparo manual. Em cron e em
+      # repository_dispatch não existe `inputs`, e a combinação `A && B || C`
+      # do GitHub devolve C quando B é false — ou seja, "não publicar" viraria
+      # "publicar". Por isso a decisão é tomada aqui, em shell, e não na
+      # expressão.
+      - name: Decidir o que esta execução vai fazer
+        id: decidir
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "publicar=${{ inputs.publicar }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.ignorar_trava }}" = "true" ]; then
+              echo "trava=" >> "$GITHUB_OUTPUT"
+            else
+              echo "trava=--exigir-inedito-hoje" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+            echo "trava=--exigir-inedito-hoje" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dependências
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          mkdir -p ~/.local/share/fonts/poppins
+          for f in Poppins-Bold.ttf Poppins-Regular.ttf; do
+            curl -fsSL --retry 3 -o ~/.local/share/fonts/poppins/$f https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/$f
+          done
+          fc-cache -f
+          pip install -r requirements/test.txt -r requirements/characters.txt
+
+      - name: Isolamento e testes
+        run: |
+          python scripts/isolation_guard.py
+          python -m pytest -q
+
+      - name: Coletar dados ao vivo
+        run: python -m scripts.collect_live output/snapshot.json
+
+      - name: Avaliar pautas e atualizar a fila
+        run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
+
+      - name: Escolher a pauta do dia
+        id: pauta
+        run: |
+          python -m scripts.escolher_pauta \
+            --queue data/editorial_queue.json \
+            --out output/pauta.json \
+            ${{ steps.decidir.outputs.trava }}
+
+      - name: Registrar por que não houve Reel
+        if: steps.pauta.outputs.seguir != 'sim'
+        run: |
+          echo "### Sem Reel nesta execução" >> "$GITHUB_STEP_SUMMARY"
+          echo "Motivo: \`${{ steps.pauta.outputs.motivo }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Nada foi enviado à Meta." >> "$GITHUB_STEP_SUMMARY"
+
+      # --------------------------------------------------------------- Reel
+
+      - name: Render com a pauta escolhida
+        if: steps.pauta.outputs.seguir == 'sim'
+        run: |
+          python -m src.previsao_rj.render.characters.pipeline \
+            --snapshot output/snapshot.json \
+            --personagem "${{ steps.pauta.outputs.personagem }}" \
+            --format "${{ steps.pauta.outputs.formato }}" \
+            --out output/REEL.mp4
+
+      - name: Legenda da mesma pauta
+        if: steps.pauta.outputs.seguir == 'sim'
+        run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt --pauta output/pauta.json
+
+      - name: QA
+        if: steps.pauta.outputs.seguir == 'sim'
+        run: python scripts/qa_video.py output/REEL.mp4
+
+      - name: Mostrar pauta, roteiro e legenda no resumo
+        if: steps.pauta.outputs.seguir == 'sim'
+        run: |
+          {
+            echo "## Pauta"
+            echo "- formato: \`${{ steps.pauta.outputs.formato }}\`"
+            echo "- tópico: \`${{ steps.pauta.outputs.topico }}\`"
+            echo "- apresentador: \`${{ steps.pauta.outputs.personagem }}\`"
+            echo "- dedupe_key: \`${{ steps.pauta.outputs.dedupe_key }}\`"
+            echo '## Legenda'
+            echo '```'
+            cat output/LEGENDA.txt 2>/dev/null || echo '(sem legenda)'
+            echo '```'
+            echo '## Roteiro falado'
+            echo '```'
+            cat output/work_*/roteiro.txt 2>/dev/null || echo '(sem roteiro)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.pauta.outputs.seguir == 'sim'
+        with:
+          name: previsao-rj-reel-${{ github.run_id }}
+          path: output/
+          retention-days: 14
+
+      # ---------------------------------------------------------- publicação
+
+      - name: Verificar Meta e conta de destino
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
+          EXPECTED_IG_USERNAME: previsaorj
+        run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print('destino:',verify_destination().get('username'))"
+
+      - name: Exigir repositório público para o Release que a Meta vai baixar
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(gh repo view "${{ github.repository }}" --json visibility -q .visibility)
+          test "$V" = "PUBLIC" || { echo "PUBLICAÇÃO BLOQUEADA: Release de repo privado não é URL pública para a Meta."; exit 1; }
+
+      - name: Hospedar MP4 em Release temporário
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        id: media
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="reel-${{ github.run_id }}"
+          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Reel diário @previsaorj"
+          echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar o Reel do dia
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
+          EXPECTED_IG_USERNAME: previsaorj
+        run: |
+          python -m src.previsao_rj.publish.cli \
+            --video-url "${{ steps.media.outputs.url }}" \
+            --caption-file output/LEGENDA.txt \
+            --queue data/editorial_queue.json \
+            --dedupe-key "${{ steps.pauta.outputs.dedupe_key }}" \
+            --publish
+
+      # A fila é o estado do publicador: precisa ser gravada mesmo quando a
+      # publicação falhou no meio, senão o item fica 'publishing' só no runner.
+      - name: Persistir a fila no repositório
+        if: ${{ always() && steps.pauta.outputs.seguir == 'sim' }}
+        run: |
+          set -euo pipefail
+          test -f data/editorial_queue.json || { echo "sem fila para persistir"; exit 0; }
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/editorial_queue.json
+          if git diff --cached --quiet; then
+            echo "fila sem mudanca"
+            exit 0
+          fi
+          git commit -m "Fila editorial: estado apos execucao ${{ github.run_id }}"
+          git pull --rebase --autostash origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      # O MP4 só precisa existir enquanto a Meta baixa. Guardar um Release por
+      # dia para sempre enche o repositório de mídia que ninguém usa.
+      - name: Apagar Releases de Reel com mais de 7 dias
+        if: ${{ always() && steps.decidir.outputs.publicar == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LIMITE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          gh release list --repo "${{ github.repository }}" --limit 100 \
+            --json tagName,createdAt \
+            --jq ".[] | select(.createdAt < \"$LIMITE\") | select(.tagName | test(\"^(reel|pilot)-\")) | .tagName" \
+          | while read -r TAG; do
+              [ -z "$TAG" ] && continue
+              echo "apagando release $TAG"
+              gh release delete "$TAG" --repo "${{ github.repository }}" --cleanup-tag --yes
+            done

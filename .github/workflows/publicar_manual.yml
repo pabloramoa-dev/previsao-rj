@@ -1,4 +1,15 @@
 name: Reel manual — Previsão RJ
+
+# Disparo na mão: teste técnico, Reel fora de hora e resgate quando o diário
+# falhou. O Reel de todo dia é o `reel_manha.yml`.
+#
+# O agendamento de uma vez só do primeiro Reel real (07:07 de 13/09/2026) foi
+# removido: a data passou, ele nunca chegou a disparar — o cron do GitHub
+# engoliu a execução — e o Reel acabou publicado por disparo manual às 12:16.
+#
+# Aqui vale a mesma regra do diário: UMA pauta decide formato, apresentador,
+# legenda e item da fila. Fixture nunca publica.
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,73 +19,34 @@ on:
         options: [fixture, live]
         default: fixture
       personagem:
-        description: "Apresentador do Previsão RJ"
+        description: "Apresentador — 'auto' segue a alternância do motor editorial"
         type: choice
-        options: [bira, bia]
-        default: bira
+        options: [auto, bira, bia]
+        default: auto
       publicar:
         description: "Publicar no @previsaorj? Desmarcado = somente artifact"
         type: boolean
         default: false
-  # Uma vez só: o primeiro Reel real do @previsaorj, 07:07 de 13/09/2026
-  # (America/Sao_Paulo). O cron volta todo 13 de setembro, então o job `janela`
-  # confere a data — em qualquer outro ano o Reel é PULADO, nunca publicado.
-  # Depois do go-live quem publica todo dia é o reel_manha.yml; este bloco pode
-  # ser removido.
-  schedule:
-    - cron: "7 10 13 9 *"
+
 permissions:
   contents: write
+
 concurrency:
   group: previsao-rj-publicacao
   cancel-in-progress: false
-jobs:
-  janela:
-    runs-on: ubuntu-latest
-    outputs:
-      seguir: ${{ steps.decidir.outputs.seguir }}
-      fonte: ${{ steps.decidir.outputs.fonte }}
-      personagem: ${{ steps.decidir.outputs.personagem }}
-      publicar: ${{ steps.decidir.outputs.publicar }}
-    steps:
-      - name: Decidir o que esta execução vai fazer
-        id: decidir
-        env:
-          EVENTO: ${{ github.event_name }}
-          IN_FONTE: ${{ inputs.fonte }}
-          IN_PERSONAGEM: ${{ inputs.personagem }}
-          IN_PUBLICAR: ${{ inputs.publicar }}
-        run: |
-          set -euo pipefail
-          # Disparo manual: valem as caixinhas que a pessoa marcou.
-          if [ "$EVENTO" != "schedule" ]; then
-            { echo "seguir=sim"
-              echo "fonte=$IN_FONTE"
-              echo "personagem=$IN_PERSONAGEM"
-              echo "publicar=$IN_PUBLICAR"; } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # Agendamento: o cron não sabe de ano, então a data é conferida aqui.
-          HOJE=$(TZ=America/Sao_Paulo date +%F)
-          if [ "$HOJE" != "2026-09-13" ]; then
-            echo "Agendamento de uma vez só, combinado para 2026-09-13; hoje é $HOJE. Nada a fazer."
-            echo "seguir=nao" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          { echo "seguir=sim"
-            echo "fonte=live"
-            echo "personagem=bira"
-            echo "publicar=true"; } >> "$GITHUB_OUTPUT"
 
+jobs:
   reel:
-    needs: janela
-    if: needs.janela.outputs.seguir == 'sim'
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    env:
+      FONTE: ${{ inputs.fonte }}
+      PUBLICAR: ${{ inputs.publicar }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
+
       - name: Dependências
         run: |
           sudo apt-get update -q
@@ -85,34 +57,83 @@ jobs:
           done
           fc-cache -f
           pip install -r requirements/test.txt -r requirements/characters.txt
+
       - name: Isolamento e testes
         run: |
           python scripts/isolation_guard.py
           python -m pytest -q
+
       - name: Bloquear publicação com fixture
-        if: ${{ needs.janela.outputs.publicar == 'true' && needs.janela.outputs.fonte != 'live' }}
+        if: ${{ env.PUBLICAR == 'true' && env.FONTE != 'live' }}
         run: |
           echo "PUBLICAÇÃO BLOQUEADA: dados de fixture nunca vão para o feed."
           exit 1
-      - name: Coletar dados ao vivo
-        if: ${{ needs.janela.outputs.fonte == 'live' }}
-        run: python -m scripts.collect_live output/snapshot.json
+
+      # ------------------------------------------------------------- fixture
+
       - name: Usar fixture técnica
-        if: ${{ needs.janela.outputs.fonte == 'fixture' }}
+        if: ${{ env.FONTE == 'fixture' }}
         run: |
           mkdir -p output
           cp tests/fixtures/snapshot_rj.json output/snapshot.json
+
       - name: Demonstração sem previsão de produção
-        if: ${{ needs.janela.outputs.fonte == 'fixture' }}
-        run: python -m src.previsao_rj.render.characters.pipeline --demo --personagem ${{ needs.janela.outputs.personagem }} --out output/REEL.mp4
-      - name: Render com dados atuais
-        if: ${{ needs.janela.outputs.fonte == 'live' }}
-        run: python -m src.previsao_rj.render.characters.pipeline --snapshot output/snapshot.json --personagem ${{ needs.janela.outputs.personagem }} --out output/REEL.mp4
+        if: ${{ env.FONTE == 'fixture' }}
+        run: |
+          P="${{ inputs.personagem }}"
+          if [ "$P" = "auto" ]; then P=bira; fi
+          python -m src.previsao_rj.render.characters.pipeline --demo --personagem "$P" --out output/REEL.mp4
+
+      # ---------------------------------------------------------------- live
+
+      - name: Coletar dados ao vivo
+        if: ${{ env.FONTE == 'live' }}
+        run: python -m scripts.collect_live output/snapshot.json
+
+      - name: Avaliar pautas e atualizar a fila
+        if: ${{ env.FONTE == 'live' }}
+        run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
+
+      # Ficar sem pauta aqui é erro, não silêncio: quem apertou o botão precisa
+      # saber que não há Reel e por quê, em vez de receber um artifact vazio.
+      - name: Escolher a pauta
+        id: pauta
+        if: ${{ env.FONTE == 'live' }}
+        run: |
+          python -m scripts.escolher_pauta \
+            --queue data/editorial_queue.json \
+            --out output/pauta.json \
+            --exigir-pauta
+
+      - name: Render com a pauta escolhida
+        if: ${{ env.FONTE == 'live' }}
+        run: |
+          P="${{ inputs.personagem }}"
+          if [ "$P" = "auto" ]; then P="${{ steps.pauta.outputs.personagem }}"; fi
+          python -m src.previsao_rj.render.characters.pipeline \
+            --snapshot output/snapshot.json \
+            --personagem "$P" \
+            --format "${{ steps.pauta.outputs.formato }}" \
+            --out output/REEL.mp4
+
+      # ------------------------------------------------------ comum aos dois
+
       - name: Legenda
-        run: python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
-      - name: Mostrar roteiro e legenda no resumo
+        run: |
+          if [ -f output/pauta.json ]; then
+            python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt --pauta output/pauta.json
+          else
+            python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
+          fi
+
+      - name: Mostrar pauta, roteiro e legenda no resumo
         run: |
           {
+            echo "## Pauta"
+            echo "- fonte: \`${{ inputs.fonte }}\`"
+            echo "- formato: \`${{ steps.pauta.outputs.formato || 'demonstração' }}\`"
+            echo "- apresentador: \`${{ steps.pauta.outputs.personagem || inputs.personagem }}\`"
+            echo "- dedupe_key: \`${{ steps.pauta.outputs.dedupe_key || '—' }}\`"
             echo '## Legenda'
             echo '```'
             cat output/LEGENDA.txt 2>/dev/null || echo '(sem legenda)'
@@ -122,43 +143,47 @@ jobs:
             cat output/work_*/roteiro.txt 2>/dev/null || echo '(sem roteiro)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Avaliar pautas e atualizar a fila persistente
-        if: ${{ needs.janela.outputs.fonte == 'live' }}
-        run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
 
       - name: QA
         run: python scripts/qa_video.py output/REEL.mp4
+
       - uses: actions/upload-artifact@v4
         with:
           name: previsao-rj-reel-${{ github.run_id }}
           path: output/
           retention-days: 14
+
+      # ---------------------------------------------------------- publicação
+
       - name: Verificar Meta e conta de destino
-        if: ${{ needs.janela.outputs.publicar == 'true' }}
+        if: ${{ env.PUBLICAR == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
           EXPECTED_IG_USERNAME: previsaorj
         run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print('destino:',verify_destination().get('username'))"
+
       - name: Exigir repositório público para Release usado pela Meta
-        if: ${{ needs.janela.outputs.publicar == 'true' }}
+        if: ${{ env.PUBLICAR == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           V=$(gh repo view "${{ github.repository }}" --json visibility -q .visibility)
           test "$V" = "PUBLIC" || { echo "PUBLICAÇÃO BLOQUEADA: Release de repo privado não é URL pública para a Meta."; exit 1; }
+
       - name: Hospedar MP4 em Release temporário
-        if: ${{ needs.janela.outputs.publicar == 'true' }}
+        if: ${{ env.PUBLICAR == 'true' }}
         id: media
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="pilot-${{ github.run_id }}"
-          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Piloto controlado @previsaorj"
+          TAG="reel-${{ github.run_id }}"
+          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Reel manual @previsaorj"
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
+
       - name: Publicar Reel controlado
-        if: ${{ needs.janela.outputs.publicar == 'true' }}
+        if: ${{ env.PUBLICAR == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -169,10 +194,11 @@ jobs:
             --video-url "${{ steps.media.outputs.url }}" \
             --caption-file output/LEGENDA.txt \
             --queue data/editorial_queue.json \
+            --dedupe-key "${{ steps.pauta.outputs.dedupe_key }}" \
             --publish
 
       - name: Persistir a fila no repositorio
-        if: ${{ always() && needs.janela.outputs.publicar == 'true' && needs.janela.outputs.fonte == 'live' }}
+        if: ${{ always() && env.PUBLICAR == 'true' && env.FONTE == 'live' }}
         run: |
           set -euo pipefail
           test -f data/editorial_queue.json || { echo "sem fila para persistir"; exit 0; }
