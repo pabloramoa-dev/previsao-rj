@@ -79,6 +79,61 @@ def test_legenda_de_contraste_usa_as_duas_pontas(snapshot):
     assert "37" in legenda
 
 
+def test_janela_de_chuva_fala_de_chuva_e_nao_de_temperatura(snapshot):
+    """O bug de 15/09/2026, preso em teste.
+
+    A pauta `janela_chuva` não tem bloco de contraste e o volume de chuva não
+    está em `facts` — só no snapshot. A primeira versão caiu num campo padrão e
+    publicou a MÁXIMA rotulada como se fosse a previsão de chuva: "Barra da
+    Tijuca: previsão de 22". Vinte e dois graus, anunciados numa pauta de chuva.
+    """
+    chuvoso = {
+        'forecast': {'today': {'date': '2026-09-15', 'locations': [
+            {'id': 'barra_da_tijuca', 'name': 'Barra da Tijuca', 'max_c': 22,
+             'rain_mm': 1.6, 'rain_window': {'start': '15:00', 'end': '18:00'}},
+            {'id': 'campo_grande', 'name': 'Campo Grande', 'max_c': 22,
+             'rain_mm': 1.5, 'rain_window': {'start': '16:00', 'end': '19:00'}},
+        ]}}}
+    pauta = item(format="chove_onde", topic="janela_chuva",
+                 location_ids=["barra_da_tijuca", "campo_grande"],
+                 facts={}, extra={})
+    legenda = build_caption(chuvoso, pauta)
+    assert "1.6 mm" in legenda and "1.5 mm" in legenda
+    assert "15:00" in legenda and "18:00" in legenda
+    assert "22" not in legenda, "máxima não entra em pauta de chuva"
+
+
+def test_sem_o_dado_do_topico_volta_ao_resumo_do_dia(snapshot):
+    """Faltando o campo da pauta, a legenda vira o resumo geral do dia — com o
+    número dito pelo que ele é. O que não pode é a máxima aparecer vestida de
+    volume de chuva."""
+    sem_chuva = {
+        'forecast': {'today': {'date': '2026-09-15', 'locations': [
+            {'id': 'tijuca', 'name': 'Tijuca', 'max_c': 31,
+             'wind_gust_max_kmh': 28},
+        ]}}}
+    pauta = item(format="chove_onde", topic="janela_chuva",
+                 location_ids=["tijuca"], facts={}, extra={})
+    legenda = build_caption(sem_chuva, pauta)
+    assert "mm" not in legenda
+    assert "volume previsto" not in legenda
+    assert "Máximas entre" in legenda and "31°" in legenda
+    assert "@previsaorj" in legenda
+
+
+def test_unidade_acompanha_o_topico_no_contraste(snapshot):
+    pauta = item(format="chove_onde", topic="vento",
+                 location_ids=["campo_grande", "duque_de_caxias"],
+                 extra={"contrast": {"spread": 15.0,
+                                     "high": {"id": "campo_grande",
+                                              "name": "Campo Grande", "value": 34.0},
+                                     "low": {"id": "duque_de_caxias",
+                                             "name": "Duque de Caxias", "value": 19.0}}})
+    legenda = build_caption(snapshot, pauta)
+    assert "34 km/h" in legenda and "19 km/h" in legenda
+    assert "15 km/h de diferença" in legenda
+
+
 def test_legenda_de_fim_de_semana_mostra_os_dois_dias(snapshot):
     pauta = item(format="fim_de_semana", topic="fim_de_semana",
                  extra={"dates": ["2026-09-12", "2026-09-13"],
