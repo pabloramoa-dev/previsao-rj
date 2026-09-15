@@ -24,7 +24,10 @@ def test_chave_geral_da_automacao_existe():
     É o rollback de um clique, sem editar arquivo."""
     texto = MANHA.read_text(encoding='utf-8')
     assert "AUTOMATION_ENABLED == 'true'" in texto
-    assert carregar(MANHA)['jobs']['reel']['if'] == "vars.AUTOMATION_ENABLED == 'true'"
+    jobs = carregar(MANHA)['jobs']
+    # O gate fica no primeiro job da cadeia; o resto depende dele.
+    assert jobs['trava']['if'] == "vars.AUTOMATION_ENABLED == 'true'"
+    assert jobs['reel']['needs'] == 'trava'
 
 
 def test_reel_diario_tem_mais_de_uma_tentativa_de_cron():
@@ -38,8 +41,12 @@ def test_reel_diario_tem_mais_de_uma_tentativa_de_cron():
 
 
 def test_reel_diario_trava_segunda_publicacao_no_mesmo_dia():
-    """Várias tentativas de cron só são seguras com a trava do dia."""
-    assert '--exigir-inedito-hoje' in MANHA.read_text(encoding='utf-8')
+    """Várias tentativas de cron só são seguras com a trava do dia, e ela é
+    conferida DUAS vezes: antes de instalar qualquer coisa (job `trava`) e
+    depois do scan, com a fila já atualizada (`--exigir-inedito-hoje`)."""
+    texto = MANHA.read_text(encoding='utf-8')
+    assert '--exigir-inedito-hoje' in texto
+    assert carregar(MANHA)['jobs']['reel']['if'] == "needs.trava.outputs.pular != 'sim'"
 
 
 def test_publicadores_compartilham_a_mesma_concorrencia():
