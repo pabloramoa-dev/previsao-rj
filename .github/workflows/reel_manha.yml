@@ -8,17 +8,18 @@ name: Reel da manhã — Previsão RJ
 # uma tentativa só, um atraso desses publica a previsão da manhã à tarde — ou
 # não publica.
 #
-# Então são três tentativas antes das 6h e uma trava de idempotência: o
-# `escolher_pauta --exigir-inedito-hoje` lê a fila versionada e, se já existe
-# publicação com a data local de hoje, a execução sai por `seguir=nao` sem
-# falar com a Meta. A primeira tentativa que realmente disparar publica; as
-# outras conferem e saem em segundos.
+# Então são três tentativas antes das 6h e uma trava de idempotência: o job
+# `trava` lê a fila versionada e, se já existe publicação com a data local de
+# hoje, o Reel nem começa. A primeira tentativa que realmente disparar publica;
+# as outras saem em segundos, sem instalar ffmpeg nem coletar nada.
 #
-# Cinto e suspensório: o `publish.cli` também recusa legenda equivalente já
-# publicada, então mesmo que o commit da fila falhe não sai Reel repetido.
+# Cinto e suspensório, em três camadas: o job `trava`, o
+# `escolher_pauta --exigir-inedito-hoje` (que relê a fila já atualizada) e o
+# `publish.cli`, que recusa legenda equivalente já publicada. Mesmo que o
+# commit da fila falhe, não sai Reel repetido.
 #
 # Chave geral: a variable AUTOMATION_ENABLED. Sem ela igual a 'true', nada
-# roda. É o rollback de um clique.
+# roda. É o rollback de um clique, sem editar arquivo.
 
 on:
   schedule:
@@ -49,35 +50,71 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  reel:
+  # Job separado, e não um passo: o que ele evita é justamente o custo dos
+  # passos seguintes (apt, pip, Manim, Kokoro). Nas tentativas de cron em que
+  # já saiu Reel, a execução inteira termina em segundos.
+  trava:
     if: vars.AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      pular: ${{ steps.conferir.outputs.pular }}
+      publicar: ${{ steps.conferir.outputs.publicar }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Já saiu Reel hoje?
+        id: conferir
+        env:
+          EVENTO: ${{ github.event_name }}
+          IN_PUBLICAR: ${{ inputs.publicar }}
+          IN_IGNORAR: ${{ inputs.ignorar_trava }}
+        run: |
+          python3 - <<'PY'
+          import datetime, json, os, pathlib
+
+          # As caixinhas do disparo manual só existem no disparo manual. Em cron
+          # e em repository_dispatch não há `inputs`, e a combinação A && B || C
+          # do GitHub devolve C quando B é false — "não publicar" viraria
+          # "publicar". Por isso a decisão é tomada aqui, em Python.
+          manual = os.environ['EVENTO'] == 'workflow_dispatch'
+          publicar = os.environ.get('IN_PUBLICAR', '') != 'false' if manual else True
+          ignorar = manual and os.environ.get('IN_IGNORAR', '') == 'true'
+
+          hoje = datetime.datetime.now(
+              datetime.timezone(datetime.timedelta(hours=-3))).date().isoformat()
+
+          fila = pathlib.Path('data/editorial_queue.json')
+          itens = json.loads(fila.read_text(encoding='utf-8')) if fila.exists() else []
+          ja = [i for i in itens
+                if i.get('status') == 'published'
+                and str(i.get('published_at', ''))[:10] == hoje]
+
+          pular = 'sim' if (ja and not ignorar) else 'nao'
+          print(f'hoje={hoje} pular={pular} publicar={publicar} '
+                f'publicacoes_hoje={len(ja)}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as saida:
+              saida.write(f'pular={pular}\n')
+              saida.write(f'publicar={str(publicar).lower()}\n')
+
+          resumo = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
+          if pular == 'sim':
+              resumo.write_text(
+                  f'### Reel de {hoje} já publicado\n\n'
+                  f'- formato: `{ja[-1].get("format")}`\n'
+                  f'- media_id: `{ja[-1].get("media_id")}`\n\n'
+                  'Esta tentativa de cron encerrou sem falar com a Meta.\n',
+                  encoding='utf-8')
+          PY
+
+  reel:
+    needs: trava
+    if: needs.trava.outputs.pular != 'sim'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-
-      # As caixinhas do disparo manual valem só no disparo manual. Em cron e em
-      # repository_dispatch não existe `inputs`, e a combinação `A && B || C`
-      # do GitHub devolve C quando B é false — ou seja, "não publicar" viraria
-      # "publicar". Por isso a decisão é tomada aqui, em shell, e não na
-      # expressão.
-      - name: Decidir o que esta execução vai fazer
-        id: decidir
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "publicar=${{ inputs.publicar }}" >> "$GITHUB_OUTPUT"
-            if [ "${{ inputs.ignorar_trava }}" = "true" ]; then
-              echo "trava=" >> "$GITHUB_OUTPUT"
-            else
-              echo "trava=--exigir-inedito-hoje" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "publicar=true" >> "$GITHUB_OUTPUT"
-            echo "trava=--exigir-inedito-hoje" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Dependências
         run: |
@@ -101,20 +138,23 @@ jobs:
       - name: Avaliar pautas e atualizar a fila
         run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
 
+      # Segunda camada da trava: aqui a fila já está atualizada pelo scan.
       - name: Escolher a pauta do dia
         id: pauta
         run: |
           python -m scripts.escolher_pauta \
             --queue data/editorial_queue.json \
             --out output/pauta.json \
-            ${{ steps.decidir.outputs.trava }}
+            --exigir-inedito-hoje
 
       - name: Registrar por que não houve Reel
         if: steps.pauta.outputs.seguir != 'sim'
         run: |
-          echo "### Sem Reel nesta execução" >> "$GITHUB_STEP_SUMMARY"
-          echo "Motivo: \`${{ steps.pauta.outputs.motivo }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "Nada foi enviado à Meta." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Sem Reel nesta execução"
+            echo "Motivo: \`${{ steps.pauta.outputs.motivo }}\`"
+            echo "Nada foi enviado à Meta."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # --------------------------------------------------------------- Reel
 
@@ -164,7 +204,7 @@ jobs:
       # ---------------------------------------------------------- publicação
 
       - name: Verificar Meta e conta de destino
-        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -173,7 +213,7 @@ jobs:
         run: python -c "from src.previsao_rj.publish.instagram import verify_destination; print('destino:',verify_destination().get('username'))"
 
       - name: Exigir repositório público para o Release que a Meta vai baixar
-        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -181,7 +221,7 @@ jobs:
           test "$V" = "PUBLIC" || { echo "PUBLICAÇÃO BLOQUEADA: Release de repo privado não é URL pública para a Meta."; exit 1; }
 
       - name: Hospedar MP4 em Release temporário
-        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' }}
         id: media
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,7 +231,7 @@ jobs:
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
 
       - name: Publicar o Reel do dia
-        if: ${{ steps.pauta.outputs.seguir == 'sim' && steps.decidir.outputs.publicar == 'true' }}
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -226,7 +266,7 @@ jobs:
       # O MP4 só precisa existir enquanto a Meta baixa. Guardar um Release por
       # dia para sempre enche o repositório de mídia que ninguém usa.
       - name: Apagar Releases de Reel com mais de 7 dias
-        if: ${{ always() && steps.decidir.outputs.publicar == 'true' }}
+        if: ${{ always() && needs.trava.outputs.publicar == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
