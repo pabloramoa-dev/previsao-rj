@@ -245,3 +245,49 @@ def test_escolher_pauta_ignora_item_vencido(tmp_path):
     state.save(fila, [item(expires_at="2020-01-01T00:00:00-03:00")])
     _, saidas = escolher(tmp_path, fila)
     assert saidas["seguir"] == "nao"
+
+
+# ------------------------------------------------- janela de chuva legível
+
+
+def test_janela_do_dia_inteiro_vira_hora_de_pico(snapshot):
+    """"Maior chance entre 00:00 e 23:00" é o dia inteiro anunciado como se
+    fosse um recorte — foi o que saiu no ensaio de 15/09/2026. Janela larga
+    passa a ser dita pelo pico, que é o que a pessoa usa para decidir."""
+    largo = {
+        'forecast': {'today': {'date': '2026-09-15', 'locations': [
+            {'id': 'barra_da_tijuca', 'name': 'Barra da Tijuca', 'rain_mm': 13.8,
+             'rain_window': {'start': '00:00', 'end': '23:00',
+                             'peak_hour': '19:00', 'peak_probability_pct': 90}},
+        ]}}}
+    pauta = item(format="chove_onde", topic="janela_chuva",
+                 location_ids=["barra_da_tijuca"], facts={}, extra={})
+    legenda = build_caption(largo, pauta)
+    assert "00:00 e 23:00" not in legenda
+    assert "19:00" in legenda and "90%" in legenda
+
+
+def test_janela_estreita_continua_como_faixa(snapshot):
+    estreito = {
+        'forecast': {'today': {'date': '2026-09-15', 'locations': [
+            {'id': 'tijuca', 'name': 'Tijuca', 'rain_mm': 6.0,
+             'rain_window': {'start': '14:00', 'end': '18:00',
+                             'peak_hour': '16:00', 'peak_probability_pct': 70}},
+        ]}}}
+    pauta = item(format="chove_onde", topic="janela_chuva",
+                 location_ids=["tijuca"], facts={}, extra={})
+    legenda = build_caption(estreito, pauta)
+    assert "entre 14:00 e 18:00" in legenda
+
+
+def test_janela_sem_pico_e_sem_faixa_util_nao_vira_linha(snapshot):
+    sem_pico = {
+        'forecast': {'today': {'date': '2026-09-15', 'locations': [
+            {'id': 'tijuca', 'name': 'Tijuca', 'rain_mm': 6.0,
+             'rain_window': {'start': '00:00', 'end': '23:00'}},
+        ]}}}
+    pauta = item(format="chove_onde", topic="janela_chuva",
+                 location_ids=["tijuca"], facts={}, extra={})
+    legenda = build_caption(sem_pico, pauta)
+    assert "🕒" not in legenda
+    assert "6 mm" in legenda
