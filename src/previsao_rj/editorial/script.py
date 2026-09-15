@@ -52,11 +52,17 @@ def _hora(texto):
         return None
 
 
-def janela_legivel(janela: dict | None) -> dict | None:
+def janela_legivel(janela: dict | None, agora: int | None = None) -> dict | None:
     """Traduz `rain_window` no que vale dizer: faixa estreita ou hora do pico.
 
+    `agora` e a hora cheia atual (0-23). Com ela, o que ja passou nao e dito: o
+    Reel sai as 6h e anunciar "pico por volta das 01:00" e informar chuva de
+    ontem a noite para quem esta decidindo se leva guarda-chuva hoje. Janela que
+    terminou fica de fora; janela que comecou antes do amanhecer e cortada no
+    agora e so o que resta dela e anunciado.
+
     Devolve `None` quando nao ha nada confiavel a dizer — e ai a linha nao entra,
-    em vez de anunciar o dia inteiro como se fosse um horario.
+    em vez de anunciar o dia inteiro, ou o passado, como se fosse um horario.
     """
     if not isinstance(janela, dict):
         return None
@@ -64,10 +70,25 @@ def janela_legivel(janela: dict | None) -> dict | None:
     h_inicio, h_fim = _hora(inicio), _hora(fim)
     if h_inicio is None or h_fim is None or h_fim <= h_inicio:
         return None
+
+    if agora is not None:
+        if h_fim <= agora:
+            return None
+        if h_inicio < agora:
+            h_inicio, inicio = agora, f'{agora:02d}:00'
+
     if h_fim - h_inicio < LARGA_H:
         return {'tipo': 'faixa', 'inicio': inicio, 'fim': fim}
+
     pico = janela.get('peak_hour')
     prob = janela.get('peak_probability_pct')
-    if pico and number(prob):
+    h_pico = _hora(pico)
+    if pico and number(prob) and (agora is None or (h_pico is not None and h_pico >= agora)):
         return {'tipo': 'pico', 'hora': pico, 'probabilidade': prob}
     return None
+
+
+def hora_agora() -> int:
+    """Hora cheia em Brasilia. Isolada para os testes poderem fixar o relogio."""
+    from ..collectors.base import now
+    return now().hour
