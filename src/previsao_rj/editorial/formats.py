@@ -2,7 +2,7 @@
 from datetime import timedelta
 from .contrast import regional_contrast
 from .engine import evaluate, stamp
-from .script import build_script, number
+from .script import build_script, janela_legivel, number
 
 TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA ONDE?',
           'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?'}
@@ -86,8 +86,11 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
                 label = {'temperatura':'máxima', 'vento':'rajadas', 'chuva':'probabilidade de chuva no dia'}.get(topic,'volume previsto no dia')
                 lines.append(f"Em {loc['name']}, {label} de {value:g} {unit}.")
             if loc.get('rain_window') and topic in {'chuva','janela_chuva'}:
-                w = loc['rain_window']
-                lines.append(f"Os horários com maior probabilidade aparecem entre {w['start']} e {w['end']}; pode haver intervalos sem chuva.")
+                leitura = janela_legivel(loc['rain_window'])
+                if leitura and leitura['tipo'] == 'faixa':
+                    lines.append(f"Os horários com maior probabilidade aparecem entre {leitura['inicio']} e {leitura['fim']}; pode haver intervalos sem chuva.")
+                elif leitura:
+                    lines.append(f"A maior probabilidade é por volta das {leitura['hora']}, com {leitura['probabilidade']:g} por cento; pode haver intervalos sem chuva.")
         if topic in {'chuva','janela_chuva'}: lines.append('Probabilidade não indica chuva contínua durante todo o período.')
     elif format == 'fim_de_semana':
         for block in snapshot['forecast'].values():

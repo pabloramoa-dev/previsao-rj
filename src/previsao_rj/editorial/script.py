@@ -36,3 +36,38 @@ def build_script(snapshot: dict) -> dict:
         text += "A probabilidade de chuva não está disponível nesta coleta. "
     text += "Confira a atualização antes de sair. Previsão RJ. O tempo do Rio para decidir seu dia."
     return {"hook": hook, "narration": text, "hottest": hottest, "coolest": coolest, "wettest": wettest}
+
+
+# Janela larga nao informa nada. Em 15/09/2026 o Reel e a legenda anunciaram
+# "maior chance entre 00:00 e 23:00": tecnicamente verdadeiro, editorialmente
+# inutil — o dia inteiro anunciado como se fosse um recorte. Quando a janela
+# passa de LARGA_H horas, o que informa e o PICO, que o snapshot ja calcula.
+LARGA_H = 8
+
+
+def _hora(texto):
+    try:
+        return int(str(texto).split(':')[0])
+    except (ValueError, AttributeError, IndexError):
+        return None
+
+
+def janela_legivel(janela: dict | None) -> dict | None:
+    """Traduz `rain_window` no que vale dizer: faixa estreita ou hora do pico.
+
+    Devolve `None` quando nao ha nada confiavel a dizer — e ai a linha nao entra,
+    em vez de anunciar o dia inteiro como se fosse um horario.
+    """
+    if not isinstance(janela, dict):
+        return None
+    inicio, fim = janela.get('start'), janela.get('end')
+    h_inicio, h_fim = _hora(inicio), _hora(fim)
+    if h_inicio is None or h_fim is None or h_fim <= h_inicio:
+        return None
+    if h_fim - h_inicio < LARGA_H:
+        return {'tipo': 'faixa', 'inicio': inicio, 'fim': fim}
+    pico = janela.get('peak_hour')
+    prob = janela.get('peak_probability_pct')
+    if pico and number(prob):
+        return {'tipo': 'pico', 'hora': pico, 'probabilidade': prob}
+    return None
