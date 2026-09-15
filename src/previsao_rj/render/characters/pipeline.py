@@ -73,17 +73,39 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair"):
     from ...editorial.formats import prepare
     prepared = prepare(snapshot, format) if snapshot is not None else None
     beats = prepared["beats"] if prepared else demo_beats(character)
-    (work / 'roteiro.txt').write_text('\n'.join(b['fala'] for b in beats), encoding='utf-8')
     raw, narration = work / 'raw.wav', work / 'narracao.wav'
-    run([sys.executable, '-m', PACKAGE + '.kokoro', work / 'roteiro.txt',
-         '--voz', preset['voice'], '--speed', preset['speed'], '--gap', preset['gap'],
-         '--out', raw, '--seg-json', work / 'segs.json'])
+
+    def narrar(batidas):
+        (work / 'roteiro.txt').write_text('\n'.join(b['fala'] for b in batidas), encoding='utf-8')
+        run([sys.executable, '-m', PACKAGE + '.kokoro', work / 'roteiro.txt',
+             '--voz', preset['voice'], '--speed', preset['speed'], '--gap', preset['gap'],
+             '--out', raw, '--seg-json', work / 'segs.json'])
+        return json.loads((work / 'segs.json').read_text())
+
+    segments = narrar(beats)
+
+    # Dia cheio rende roteiro longo, e roteiro longo o QA recusa (foi o que
+    # aconteceu em 15/09/2026: 43,2 s contra um teto de 40). Quem decide o que
+    # sai é o criterio editorial de `duracao`, nao o acaso do render.
+    if snapshot is not None:
+        from ...editorial.duracao import cortar_para_janela
+        duracoes = [s['fim'] - s['ini'] for s in segments]
+        restantes, cortadas = cortar_para_janela(beats, duracoes)
+        if cortadas:
+            print(f'[duracao] {sum(duracoes):.1f}s excede a janela editorial; '
+                  f'cortando {len(cortadas)} batida(s):')
+            for i in cortadas:
+                print(f'  - [{beats[i].get("tipo")}] {beats[i]["fala"]}')
+            beats = restantes
+            segments = narrar(beats)
+            print(f'[duracao] narracao final: {segments[-1]["fim"]:.1f}s '
+                  f'em {len(beats)} batidas')
+
     audio_filter = ('highpass=f=80,acompressor=threshold=-18dB:ratio=2:attack=8:release=180,volume=1.1'
                     if character in {'bira', 'bia'} else FILTER.format(pitch=preset['pitch'], inv=1 / preset['pitch']))
     run(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', audio_filter,
          '-ar', '44100', '-ac', '1', narration])
     run([sys.executable, '-m', PACKAGE + '.amplitude', narration, work / 'lip_full.json', '--fps', '22'])
-    segments = json.loads((work / 'segs.json').read_text())
     content = {'batidas': beats, 'personagem': character,
                'cenario': 'entardecer' if character == 'maria' else 'sol',
                'cenario_tipo': 'quintal' if character == 'maria' else 'varanda',
