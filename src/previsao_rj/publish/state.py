@@ -178,3 +178,19 @@ def history(path: str | Path) -> list[dict[str, Any]]:
     published = [i for i in load(path)
                  if i.get("status") == "published" and i.get("published_at")]
     return sorted(published, key=lambda i: i["published_at"])
+
+
+def published_on(path: str | Path, date_text: str) -> dict[str, Any] | None:
+    """Item ja publicado na data local `AAAA-MM-DD`, se existir.
+
+    E a trava de idempotencia do Reel diario: o cron do GitHub atrasa e pode
+    disparar mais de uma tentativa no mesmo dia. Quem ja publicou hoje nao
+    publica de novo — a conferencia e a fila versionada, nao o relogio.
+
+    `published_at` e gravado por `commit` com o fuso -03:00, entao os dez
+    primeiros caracteres ja sao a data local.
+    """
+    for item in reversed(history(path)):
+        if str(item.get("published_at", ""))[:10] == date_text:
+            return item
+    return None
