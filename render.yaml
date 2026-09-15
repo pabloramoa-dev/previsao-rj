@@ -27,7 +27,7 @@ services:
       - key: EXPECTED_IG_USERNAME
         value: previsaorj
       - key: META_GRAPH_VERSION
-        value: v22.0
+        value: v26.0
       # Os quatro valores abaixo sao gravados a mao no painel do Render.
       - key: IG_VERIFY_TOKEN
         sync: false
