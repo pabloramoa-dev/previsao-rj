@@ -6,7 +6,7 @@ Criar no GitHub **apenas depois** de existir `pabloramoa-dev/previsao-rj`:
 |---|---|
 | `IG_USER_ID` | ID da conta profissional @previsaorj |
 | `IG_ACCESS_TOKEN` | token de publicação da conta RJ |
-| `META_APP_SECRET` | validação de webhook (fase DM) |
+| `META_APP_SECRET` | validação de webhook (fase DM) — usar a **chave secreta do app do Instagram** (API com login do Instagram), não a de Configurações > Básico |
 | `IG_VERIFY_TOKEN` | handshake de webhook (fase DM) |
 | `PUBLIC_MEDIA_BASE_URL` | URL pública do MP4 quando houver storage dedicado |
 

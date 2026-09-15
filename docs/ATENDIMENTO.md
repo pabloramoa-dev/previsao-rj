@@ -91,18 +91,27 @@ Deploy pelo `render.yaml` (Blueprint). Variáveis a preencher no painel:
 |---|---|
 | `IG_ACCESS_TOKEN` | token da conta, com os cinco escopos |
 | `IG_VERIFY_TOKEN` | você inventa; a mesma string vai no painel da Meta |
-| `META_APP_SECRET` | App Settings > Basic do app da Meta |
+| `META_APP_SECRET` | **Chave secreta do app do Instagram** — Casos de uso > Personalizar > API do Instagram > Configuração da API com login do Instagram (NÃO a de Configurações > Básico) |
 | `GROQ_API_KEY` | console.groq.com > API Keys |
 | `RADAR_HASH_SALT` | o Render gera sozinho |
 
 `PYTHONPATH=src`, `EXPECTED_IG_USERNAME` e `META_GRAPH_VERSION` já vêm do
 blueprint.
 
+> **Atenção à chave secreta.** Na rota "API do Instagram com login do
+> Instagram", a Meta assina os webhooks com a chave secreta **do app do
+> Instagram**. Com a chave de Configurações > Básico, todo `POST /webhook`
+> volta `403 assinatura invalida` nos logs do Render e nenhuma DM é respondida
+> — foi o que aconteceu na implantação de 15/09/2026.
+
 ### 3. Webhook na Meta
 
 - Callback URL: `https://<servico>.onrender.com/webhook`
 - Verify token: o mesmo `IG_VERIFY_TOKEN`
 - Campos: `comments` e `messages`
+- O app precisa estar **publicado** (Publicar, no menu do app) para a Meta
+  entregar webhooks. A publicação exige a URL da política de privacidade:
+  `https://pabloramoa-dev.github.io/previsao-rj/` (arquivo `docs/index.html`).
 
 O serviço também se inscreve sozinho em `comments,messages` no primeiro `/ping`
 e no primeiro webhook — a inscrição manual é cinto e suspensório.
