@@ -140,14 +140,22 @@ def _linhas_chove_onde(snapshot: dict, item: dict, names: dict) -> list[str]:
         linhas.append(f"{icone} {names.get(local_id, local_id)}: "
                       f"{rotulo} {_g(valor)}{unidade}")
 
-    # A janela de chuva é o que essa pauta tem de mais útil: a hora.
+    # A hora é o que essa pauta tem de mais útil — desde que seja uma hora, e
+    # não o dia inteiro travestido de recorte. `janela_legivel` decide isso.
     if topico == 'janela_chuva' and linhas:
+        from ..editorial.script import janela_legivel
         for local_id in item.get('location_ids', [])[:3]:
-            janela = _por_id(snapshot).get(local_id, {}).get('rain_window') or {}
-            if janela.get('start') and janela.get('end'):
-                linhas.append(f"🕒 Maior chance entre {janela['start']} e {janela['end']} "
-                              f"em {names.get(local_id, local_id)}")
-                break
+            leitura = janela_legivel(_por_id(snapshot).get(local_id, {}).get('rain_window'))
+            if not leitura:
+                continue
+            onde = names.get(local_id, local_id)
+            if leitura['tipo'] == 'faixa':
+                linhas.append(f"🕒 Maior chance entre {leitura['inicio']} e "
+                              f"{leitura['fim']} em {onde}")
+            else:
+                linhas.append(f"🕒 Pico por volta das {leitura['hora']}, "
+                              f"{_g(leitura['probabilidade'])}% em {onde}")
+            break
     return linhas
 
 
