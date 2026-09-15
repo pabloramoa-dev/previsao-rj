@@ -20,6 +20,18 @@ from src.previsao_rj.publish.caption import build_caption
 FUTURO = "2099-01-01T00:00:00-03:00"
 
 
+@pytest.fixture(autouse=True)
+def relogio_das_seis(monkeypatch):
+    """Fixa o relógio na hora do Reel (6h).
+
+    A legenda de `janela_chuva` consulta a hora de Brasília e omite janela que já
+    passou. Sem relógio fixo, os testes com data de 15/09/2026 passavam de manhã
+    e quebravam o CI à noite — foi o que aconteceu em 15/09/2026 após as 18h.
+    """
+    from src.previsao_rj.editorial import script
+    monkeypatch.setattr(script, "hora_agora", lambda: 6)
+
+
 def item(**campos):
     base = {
         "format": "rio_antes_de_sair",
