@@ -85,29 +85,69 @@ def _linhas_rio_antes_de_sair(snapshot: dict, item: dict, names: dict) -> list[s
     return linhas
 
 
+# topico -> (icone, rotulo, unidade, campo do snapshot)
+#
+# Cada topico le o SEU campo. Nao existe campo padrao: em 15/09/2026 a legenda
+# de um `janela_chuva` saiu como "previsao de 22" — o 22 era a maxima em graus,
+# rotulada como se fosse o volume de chuva da pauta. Faltando o dado do topico,
+# a linha nao entra; numero de outra grandeza e pior do que linha nenhuma.
+MEDIDAS = {
+    'temperatura': ('🌡️', 'máxima', '°', 'max_c'),
+    'chuva': ('☔', 'chance de chuva', '%', 'rain_probability_pct'),
+    'vento': ('💨', 'rajadas de até', ' km/h', 'wind_gust_max_kmh'),
+    'janela_chuva': ('🌧️', 'volume previsto', ' mm', 'rain_mm'),
+}
+
+
+def _por_id(snapshot: dict) -> dict[str, dict]:
+    return {e['id']: e for e in _today(snapshot) if e.get('id')}
+
+
+def _valor(snapshot: dict, item: dict, local_id: str, campo: str):
+    """Valor do campo pedido: snapshot primeiro, `facts` do item como reserva.
+
+    O snapshot tem todos os campos; `facts` guarda só três (máxima, chance de
+    chuva e rajada), então volume de chuva, por exemplo, só existe no snapshot.
+    """
+    entrada = _por_id(snapshot).get(local_id, {})
+    valor = entrada.get(campo)
+    if not _num(valor):
+        valor = (item.get('facts') or {}).get(local_id, {}).get(campo)
+    return valor if _num(valor) else None
+
+
 def _linhas_chove_onde(snapshot: dict, item: dict, names: dict) -> list[str]:
+    topico = item.get('topic')
+    if topico not in MEDIDAS:
+        return []
+    icone, rotulo, unidade, campo = MEDIDAS[topico]
+
     contraste = (item.get('extra') or {}).get('contrast') or {}
     alto, baixo = contraste.get('high') or {}, contraste.get('low') or {}
-    topico = item.get('topic')
-    rotulo = {'chuva': ('☔', 'chance de chuva', '%'),
-              'vento': ('💨', 'rajadas', ' km/h'),
-              'temperatura': ('🌡️', 'máxima', '°')}.get(topico, ('📍', 'previsão', ''))
-    icone, nome_medida, unidade = rotulo
-    linhas: list[str] = []
-    if alto and baixo and _num(alto.get('value')) and _num(baixo.get('value')):
-        linhas.append(f"{icone} {alto['name']}: {nome_medida} de {_g(alto['value'])}{unidade}")
-        linhas.append(f"{icone} {baixo['name']}: {nome_medida} de {_g(baixo['value'])}{unidade}")
+    if _num(alto.get('value')) and _num(baixo.get('value')):
+        linhas = [f"{icone} {alto['name']}: {rotulo} {_g(alto['value'])}{unidade}",
+                  f"{icone} {baixo['name']}: {rotulo} {_g(baixo['value'])}{unidade}"]
         if _num(contraste.get('spread')):
-            linhas.append(f"↔️ {_g(contraste['spread'])}{unidade.strip() or ' de diferença'} "
-                          'separando as duas pontas do Rio hoje')
+            linhas.append(f"↔️ {_g(contraste['spread'])}{unidade} de diferença "
+                          'entre as duas pontas do Rio hoje')
         return linhas
-    # Sem bloco de contraste, cai para os fatos que o proprio item carrega.
-    chave = {'chuva': 'rain_probability_pct', 'vento': 'wind_gust_max_kmh'}.get(topico, 'max_c')
+
+    linhas = []
     for local_id in item.get('location_ids', [])[:3]:
-        valor = (item.get('facts') or {}).get(local_id, {}).get(chave)
-        if _num(valor):
-            linhas.append(f"{icone} {names.get(local_id, local_id)}: "
-                          f"{nome_medida} de {_g(valor)}{unidade}")
+        valor = _valor(snapshot, item, local_id, campo)
+        if valor is None:
+            continue
+        linhas.append(f"{icone} {names.get(local_id, local_id)}: "
+                      f"{rotulo} {_g(valor)}{unidade}")
+
+    # A janela de chuva é o que essa pauta tem de mais útil: a hora.
+    if topico == 'janela_chuva' and linhas:
+        for local_id in item.get('location_ids', [])[:3]:
+            janela = _por_id(snapshot).get(local_id, {}).get('rain_window') or {}
+            if janela.get('start') and janela.get('end'):
+                linhas.append(f"🕒 Maior chance entre {janela['start']} e {janela['end']} "
+                              f"em {names.get(local_id, local_id)}")
+                break
     return linhas
 
 
