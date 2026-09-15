@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade — Previsão RJ</title>
+<style>
+  :root {
+    --fundo: #ffffff;
+    --texto: #1a1d21;
+    --suave: #5b6470;
+    --linha: #e3e7ec;
+    --destaque: #0b6ea9;
+    --caixa: #f5f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #14171a;
+      --texto: #e8ebee;
+      --suave: #9aa4b0;
+      --linha: #2a2f35;
+      --destaque: #5ab4e6;
+      --caixa: #1c2126;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 44rem; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--linha); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .5rem; }
+  h2 { font-size: 1.15rem; margin: 2.25rem 0 .6rem; }
+  p, li { color: var(--texto); }
+  .meta { color: var(--suave); font-size: .9rem; margin: 0; }
+  ul { padding-left: 1.15rem; }
+  li { margin-bottom: .4rem; }
+  a { color: var(--destaque); }
+  .caixa {
+    background: var(--caixa);
+    border: 1px solid var(--linha);
+    border-radius: 8px;
+    padding: 1rem 1.15rem;
+    margin: 1.5rem 0;
+  }
+  .caixa p { margin: 0; }
+  footer {
+    margin-top: 3rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--linha);
+    color: var(--suave); font-size: .9rem;
+  }
+  code {
+    background: var(--caixa); border: 1px solid var(--linha);
+    border-radius: 4px; padding: .1em .35em; font-size: .9em;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>Política de Privacidade</h1>
+  <p class="meta">Atendimento automático do perfil <strong>@previsaorj</strong> — Previsão RJ<br>
+  Última atualização: 15 de setembro de 2026</p>
+</header>
+
+<p>O <strong>Previsão RJ</strong> é um serviço gratuito e sem fins lucrativos que publica a previsão do
+tempo da cidade do Rio de Janeiro, de Niterói e da Baixada Fluminense no Instagram e responde, por
+mensagem direta ou comentário, a previsão do bairro que a pessoa perguntar.</p>
+
+<p>Esta página explica quais dados o robô recebe, para que eles são usados e por quanto tempo ficam
+guardados. Em resumo: <strong>o robô lê o seu pedido, responde e não mantém histórico de
+conversas.</strong></p>
+
+<h2>1. Quem é o responsável</h2>
+<p>O serviço é mantido por uma pessoa física, sem empresa por trás, e o contato para qualquer
+assunto relativo a dados é <a href="mailto:pablo.ramoa@gmail.com">pablo.ramoa@gmail.com</a>.</p>
+
+<h2>2. Que dados o robô recebe</h2>
+<p>Quando você manda uma mensagem direta ou comenta em uma publicação do @previsaorj, a Meta
+(Instagram) repassa ao nosso servidor apenas:</p>
+<ul>
+  <li><strong>o texto da mensagem ou do comentário</strong> — normalmente o nome de um bairro, praia
+      ou município;</li>
+  <li><strong>o áudio</strong>, quando você manda uma mensagem de voz;</li>
+  <li><strong>um identificador numérico</strong> gerado pela Meta para esta conversa com este perfil,
+      que serve para o robô saber para onde mandar a resposta;</li>
+  <li><strong>se você segue ou não o perfil</strong>, informação consultada na própria API do
+      Instagram para decidir o texto final da resposta.</li>
+</ul>
+<p>O robô <strong>não</strong> pede seu nome, e-mail, telefone, lista de contatos ou localização de
+GPS. O bairro da resposta é o que você mesmo informou.</p>
+
+<h2>3. Para que esses dados são usados</h2>
+<ul>
+  <li>Responder a previsão do tempo do lugar pedido;</li>
+  <li>Transcrever mensagens de voz em texto, só para entender o pedido;</li>
+  <li>Montar o <strong>radar dos seguidores</strong>: quando você informa como está o tempo no seu
+      bairro (por exemplo, &ldquo;Tijuca chuva&rdquo;), esse relato entra num resumo anônimo por
+      região, visível a quem pedir o radar.</li>
+</ul>
+<p>Não usamos seus dados para publicidade, não montamos perfil de comportamento e não vendemos nem
+cedemos informação para ninguém.</p>
+
+<h2>4. Por quanto tempo ficam guardados</h2>
+<div class="caixa">
+  <p><strong>Não existe banco de dados nem histórico de conversas.</strong> Tudo é processado na
+  memória do servidor e some quando o serviço reinicia.</p>
+</div>
+<ul>
+  <li><strong>Mensagens e áudios</strong>: descartados assim que a resposta é enviada.</li>
+  <li><strong>Relatos do radar</strong>: ficam na memória por poucas horas. Seu identificador nunca é
+      guardado junto — só um código embaralhado (hash com sal) que impede contar a mesma pessoa duas
+      vezes e não permite saber quem ela é.</li>
+  <li><strong>Controle de resposta</strong>: enquanto o servidor está ligado, ele lembra por pouco
+      tempo quais conversas já foram respondidas, para não responder em dobro, e se você segue o
+      perfil. Isso também zera a cada reinício.</li>
+  <li><strong>Registros técnicos de erro</strong> (logs) do provedor de hospedagem podem conter o
+      identificador da conversa por período curto, usados apenas para corrigir defeitos.</li>
+</ul>
+<p>A sua conversa continua existindo <em>na sua caixa de entrada do Instagram</em>, sob as regras da
+Meta — isso está fora do nosso alcance.</p>
+
+<h2>5. Com quem os dados são compartilhados</h2>
+<ul>
+  <li><strong>Meta Platforms (Instagram)</strong> — é por onde a mensagem chega e por onde a resposta
+      volta.</li>
+  <li><strong>Render</strong> — empresa que hospeda o servidor do robô.</li>
+  <li><strong>Groq</strong> — recebe apenas o áudio das mensagens de voz, para transcrição, e devolve o
+      texto. O áudio não é guardado por nós.</li>
+  <li><strong>Open-Meteo</strong> e <strong>MET Norway</strong> — serviços públicos de dados
+      meteorológicos. Consultamos apenas coordenadas de bairros. <strong>Nenhum dado seu é enviado
+      para lá.</strong></li>
+</ul>
+<p>Não há nenhum outro compartilhamento.</p>
+
+<h2>6. Seus direitos</h2>
+<p>Pela Lei Geral de Proteção de Dados (Lei nº 13.709/2018), você pode pedir confirmação de
+tratamento, acesso, correção, anonimização, portabilidade ou exclusão dos seus dados, além de
+revogar consentimento a qualquer momento. Como não mantemos histórico, quase sempre a resposta a um
+pedido de exclusão será a confirmação de que não há o que excluir. Ainda assim, todo pedido é
+respondido.</p>
+
+<h2 id="exclusao">7. Como pedir exclusão de dados</h2>
+<p>Escreva para <a href="mailto:pablo.ramoa@gmail.com">pablo.ramoa@gmail.com</a> com o assunto
+<code>Exclusão de dados</code>, informando o @ do seu perfil no Instagram. Respondemos em até 15
+dias. Para apagar a conversa do lado do Instagram, use a função de excluir conversa do próprio
+aplicativo.</p>
+
+<h2>8. Crianças e adolescentes</h2>
+<p>O serviço não é dirigido a menores de 13 anos e não coleta dados de forma consciente dessa faixa
+etária.</p>
+
+<h2>9. Alterações nesta política</h2>
+<p>Se algo mudar no funcionamento do robô, esta página é atualizada e a data no topo muda junto. O
+histórico de alterações fica público no repositório do projeto.</p>
+
+<h2>10. Contato</h2>
+<p>Dúvidas, pedidos ou reclamações: <a href="mailto:pablo.ramoa@gmail.com">pablo.ramoa@gmail.com</a>.</p>
+
+<footer>
+  Previsão RJ — cidade do Rio de Janeiro, Niterói e Baixada Fluminense.<br>
+  Código-fonte:
+  <a href="https://github.com/pabloramoa-dev/previsao-rj">github.com/pabloramoa-dev/previsao-rj</a>
+</footer>
+
+</main>
+</body>
+</html>
