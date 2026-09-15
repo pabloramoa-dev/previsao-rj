@@ -143,9 +143,11 @@ def _linhas_chove_onde(snapshot: dict, item: dict, names: dict) -> list[str]:
     # A hora é o que essa pauta tem de mais útil — desde que seja uma hora, e
     # não o dia inteiro travestido de recorte. `janela_legivel` decide isso.
     if topico == 'janela_chuva' and linhas:
-        from ..editorial.script import janela_legivel
+        from ..editorial.script import hora_agora, janela_legivel
+        agora = hora_agora()
         for local_id in item.get('location_ids', [])[:3]:
-            leitura = janela_legivel(_por_id(snapshot).get(local_id, {}).get('rain_window'))
+            leitura = janela_legivel(
+                _por_id(snapshot).get(local_id, {}).get('rain_window'), agora)
             if not leitura:
                 continue
             onde = names.get(local_id, local_id)
