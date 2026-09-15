@@ -95,3 +95,44 @@ def test_nunca_sobra_menos_de_tres_batidas():
 def test_uma_duracao_por_batida():
     with pytest.raises(ValueError):
         cortar_para_janela([b('nenhum'), b('cta')], [1.0])
+
+
+# --------------------------------------------- janela de chuva e o relógio
+
+from src.previsao_rj.editorial.script import janela_legivel  # noqa: E402
+
+
+DIA_TODO = {'start': '00:00', 'end': '23:00',
+            'peak_hour': '01:00', 'peak_probability_pct': 78}
+
+
+def test_pico_que_ja_passou_nao_e_anunciado():
+    """O Reel sai às 6h. "Pico por volta das 01:00" é chuva de ontem à noite
+    contada para quem está decidindo se leva guarda-chuva hoje."""
+    assert janela_legivel(DIA_TODO, agora=6) is None
+
+
+def test_pico_ainda_a_frente_continua_valendo():
+    adiante = {'start': '00:00', 'end': '23:00',
+               'peak_hour': '19:00', 'peak_probability_pct': 90}
+    leitura = janela_legivel(adiante, agora=6)
+    assert leitura == {'tipo': 'pico', 'hora': '19:00', 'probabilidade': 90}
+
+
+def test_janela_que_ja_terminou_some():
+    passada = {'start': '00:00', 'end': '05:00',
+               'peak_hour': '03:00', 'peak_probability_pct': 80}
+    assert janela_legivel(passada, agora=6) is None
+
+
+def test_janela_em_curso_e_cortada_no_agora():
+    """Quem lê às 14h não precisa saber que começou às 9h."""
+    leitura = janela_legivel({'start': '09:00', 'end': '18:00',
+                              'peak_hour': '11:00',
+                              'peak_probability_pct': 80}, agora=14)
+    assert leitura == {'tipo': 'faixa', 'inicio': '14:00', 'fim': '18:00'}
+
+
+def test_sem_relogio_o_comportamento_antigo_vale():
+    assert janela_legivel(DIA_TODO) == {'tipo': 'pico', 'hora': '01:00',
+                                        'probabilidade': 78}
