@@ -69,7 +69,7 @@ def test_eco_do_proprio_perfil_e_ignorado(enviadas):
 def test_resposta_curta_depois_da_previsao_vira_relato(enviadas):
     webhook._tratar_dm(dm("meier", mid="m1"))
     webhook._tratar_dm(dm("chuva", mid="m2"))
-    assert "Anotado: chuva em M" in enviadas[-1][1]
+    assert "Anotado: chuva no Méier" in enviadas[-1][1]
     assert "Radar dos seguidores" in enviadas[-1][1]
 
 
