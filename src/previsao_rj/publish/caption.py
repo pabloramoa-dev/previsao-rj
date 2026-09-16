@@ -26,6 +26,7 @@ HASHTAGS = {
     'fim_de_semana': '#PrevisaoRJ #FimDeSemana #RioDeJaneiro',
     'vai_dar_praia': '#PrevisaoRJ #PraiaNoRio #RioDeJaneiro',
     'vai_ao_jogo': '#PrevisaoRJ #RioDeJaneiro #TempoRJ',
+    'amanha_no_rio': '#PrevisaoRJ #TempoAmanha #RioDeJaneiro',
 }
 HASHTAGS_PADRAO = '#PrevisaoRJ #RioDeJaneiro #TempoRJ'
 
@@ -35,6 +36,7 @@ FECHO = {
     'fim_de_semana': 'O cenário ainda pode mudar até lá. Confira as próximas atualizações.',
     'vai_dar_praia': 'A previsão não determina segurança para banho. Siga a sinalização local.',
     'vai_ao_jogo': 'Saia de casa preparado para as três janelas: chegada, jogo e volta.',
+    'amanha_no_rio': 'Amanhã cedo tem atualização. Programe o seu dia.',
 }
 
 
@@ -65,25 +67,47 @@ def _today(snapshot: dict) -> list[dict]:
     return (snapshot.get('forecast', {}).get('today', {}) or {}).get('locations', []) or []
 
 
-def _linhas_rio_antes_de_sair(snapshot: dict, item: dict, names: dict) -> list[str]:
-    locs = [e for e in _today(snapshot) if _num(e.get('max_c'))]
+def _tomorrow(snapshot: dict) -> list[dict]:
+    return (snapshot.get('forecast', {}).get('tomorrow', {}) or {}).get('locations', []) or []
+
+
+def _linhas_do_dia(dia: list[dict]) -> list[str]:
+    locs = [e for e in dia if _num(e.get('max_c'))]
     if not locs:
         return []
     quente = max(locs, key=lambda e: e['max_c'])
     frio = min(locs, key=lambda e: e['max_c'])
-    chuvosos = [e for e in _today(snapshot) if _num(e.get('rain_probability_pct'))]
+    chuvosos = [e for e in dia if _num(e.get('rain_probability_pct'))]
     linhas = [f"🌡️ Máximas entre {_g(frio['max_c'])}° {em_local(frio['name'])} "
               f"e {_g(quente['max_c'])}° {em_local(quente['name'])}"]
     if chuvosos:
         molhado = max(chuvosos, key=lambda e: e['rain_probability_pct'])
         linhas.append(f"☔ Maior chance de chuva: {molhado['name']}, "
                       f"{_g(molhado['rain_probability_pct'])}%")
-    ventosos = [e for e in _today(snapshot) if _num(e.get('wind_gust_max_kmh'))]
+    ventosos = [e for e in dia if _num(e.get('wind_gust_max_kmh'))]
     if ventosos:
         vento = max(ventosos, key=lambda e: e['wind_gust_max_kmh'])
         if vento['wind_gust_max_kmh'] >= 30:
             linhas.append(f"💨 Rajadas de até {_g(vento['wind_gust_max_kmh'])} km/h "
                           f"em {vento['name']}")
+    return linhas
+
+
+def _linhas_rio_antes_de_sair(snapshot: dict, item: dict, names: dict) -> list[str]:
+    return _linhas_do_dia(_today(snapshot))
+
+
+def _linhas_amanha_no_rio(snapshot: dict, item: dict, names: dict) -> list[str]:
+    """Reel da noite: tudo lido do bloco de AMANHÃ, mais as cinco regiões."""
+    from ..editorial.cinco import cinco_regioes
+    dia = _tomorrow(snapshot)
+    linhas = _linhas_do_dia(dia)
+    if not linhas:
+        return []
+    cinco = cinco_regioes(dia)
+    if cinco:
+        linhas.append('')
+        linhas += [f"📍 {c['nome']}: {_g(c['min'])}° / {_g(c['max'])}°" for c in cinco]
     return linhas
 
 
@@ -216,6 +240,7 @@ CORPO = {
     'fim_de_semana': _linhas_fim_de_semana,
     'vai_dar_praia': _linhas_vai_dar_praia,
     'vai_ao_jogo': _linhas_vai_ao_jogo,
+    'amanha_no_rio': _linhas_amanha_no_rio,
 }
 
 ABERTURA = {
@@ -224,6 +249,7 @@ ABERTURA = {
     'fim_de_semana': 'Seu fim de semana no Rio, Niterói e Baixada.',
     'vai_dar_praia': 'Vai dar praia hoje?',
     'vai_ao_jogo': 'Vai ao jogo? Veja como fica o tempo nas três janelas.',
+    'amanha_no_rio': 'Amanhã no Rio, Niterói e Baixada: o tempo fica assim.',
 }
 
 
@@ -256,6 +282,9 @@ def build_caption(snapshot: dict, item: dict | None = None) -> str:
     formato = item.get('format', 'rio_antes_de_sair')
     names = _names(snapshot)
     linhas = CORPO.get(formato, _linhas_rio_antes_de_sair)(snapshot, item, names)
+    if not linhas and formato == 'amanha_no_rio':
+        # Nunca trocar amanhã por hoje na legenda: sem dado de amanhã, é erro.
+        raise ValueError('legenda de amanhã sem dado do bloco tomorrow')
     if not linhas:
         linhas = _linhas_rio_antes_de_sair(snapshot, item, names)
     if not linhas:

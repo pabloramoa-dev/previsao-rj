@@ -29,6 +29,7 @@ from typing import Any
 
 from ..collectors.base import iso, now
 from ..editorial.engine import stamp
+from ..editorial.turnos import do_turno
 
 CLAIMABLE = {"ready"}
 FINAL = {"published"}
@@ -77,15 +78,18 @@ def _expired(item: dict[str, Any], reference: datetime) -> bool:
         return True
 
 
-def next_ready(path: str | Path, reference: datetime | None = None) -> dict[str, Any] | None:
+def next_ready(path: str | Path, reference: datetime | None = None,
+               turno: str | None = None) -> dict[str, Any] | None:
     """Melhor candidato publicavel: `ready`, nao vencido, maior total.
 
     Empate resolvido pelo dedupe_key, para que duas execucoes com o mesmo
-    estado escolham sempre o mesmo item.
+    estado escolham sempre o mesmo item. Com `turno`, so pautas daquele turno
+    (manha = previsao do dia; noite = previsao de amanha).
     """
     reference = reference or now()
     ready = [i for i in load(path)
-             if i.get("status") in CLAIMABLE and not _expired(i, reference)]
+             if i.get("status") in CLAIMABLE and not _expired(i, reference)
+             and do_turno(i, turno)]
     if not ready:
         return None
     return sorted(ready, key=lambda c: (-c.get("total", 0), c.get("dedupe_key", "")))[0]
@@ -180,7 +184,8 @@ def history(path: str | Path) -> list[dict[str, Any]]:
     return sorted(published, key=lambda i: i["published_at"])
 
 
-def published_on(path: str | Path, date_text: str) -> dict[str, Any] | None:
+def published_on(path: str | Path, date_text: str,
+                 turno: str | None = None) -> dict[str, Any] | None:
     """Item ja publicado na data local `AAAA-MM-DD`, se existir.
 
     E a trava de idempotencia do Reel diario: o cron do GitHub atrasa e pode
@@ -189,8 +194,11 @@ def published_on(path: str | Path, date_text: str) -> dict[str, Any] | None:
 
     `published_at` e gravado por `commit` com o fuso -03:00, entao os dez
     primeiros caracteres ja sao a data local.
+
+    Com `turno`, so conta publicacao daquele turno: o Reel da manha nao trava
+    o da noite, e vice-versa.
     """
     for item in reversed(history(path)):
-        if str(item.get("published_at", ""))[:10] == date_text:
+        if str(item.get("published_at", ""))[:10] == date_text and do_turno(item, turno):
             return item
     return None
