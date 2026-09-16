@@ -28,6 +28,7 @@ from . import dados, radar, resposta, voz
 from .interacao import (comando, condicao_no_texto, condicao_simples,
                         limpar_pedido, sem_condicao)
 from ..geo import resolver as geo
+from ..geo.preposicao import em_local
 
 app = Flask(__name__)
 
@@ -250,7 +251,7 @@ def _tentar_relato(destino: str, mid: str, texto: str) -> bool:
         zona, local_id, nome = contexto
         if radar.registrar(mid, destino, zona, nome, curta):
             _contar("relatos_no_radar", "relato_registrado")
-            _enviar(destino, f"✅ Anotado: {curta} em {nome}. Valeu!\n"
+            _enviar(destino, f"✅ Anotado: {curta} {em_local(nome)}. Valeu!\n"
                              + radar.resumo(zona))
         return True
 
@@ -267,7 +268,7 @@ def _tentar_relato(destino: str, mid: str, texto: str) -> bool:
     zona = resposta.nome_zona(local)
     if radar.registrar(mid, destino, zona, local["name"], condicao):
         _contar("relatos_no_radar", "relato_registrado")
-        _enviar(destino, f"✅ Relato recebido: {condicao} em {local['name']}. "
+        _enviar(destino, f"✅ Relato recebido: {condicao} {em_local(local['name'])}. "
                          "Obrigado!\n" + radar.resumo(zona))
     return True
 

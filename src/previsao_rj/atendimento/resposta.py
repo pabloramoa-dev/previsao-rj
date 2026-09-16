@@ -22,6 +22,7 @@ from typing import Any
 
 from .. import config
 from ..geo import resolver as geo
+from ..geo.preposicao import em_local
 from . import dados
 from .roupa import recomendar
 
@@ -128,5 +129,5 @@ def montar(texto: str, segue=None) -> tuple[str, bool, dict[str, Any] | None]:
 
 
 def convite_radar(local: dict[str, Any]) -> str:
-    return (f"\n\nE como esta o tempo em {local['name']} agora? "
+    return (f"\n\nE como esta o tempo {em_local(local['name'])} agora? "
             "Responde so: CHUVA, GAROA, NUBLADO, SOL ou VENTO.")
