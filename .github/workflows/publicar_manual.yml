@@ -42,6 +42,8 @@ jobs:
     env:
       FONTE: ${{ inputs.fonte }}
       PUBLICAR: ${{ inputs.publicar }}
+      # Colagem de papel (vox) por padrão; variable PREVISAO_RJ_ESTILO=classico volta.
+      PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

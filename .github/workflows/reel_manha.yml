@@ -111,6 +111,11 @@ jobs:
     if: needs.trava.outputs.pular != 'sim'
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    env:
+      # Visual do Reel: colagem de papel (vox) por padrão. Para voltar ao
+      # visual anterior sem editar arquivo, crie a variable
+      # PREVISAO_RJ_ESTILO=classico em Settings > Variables.
+      PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
