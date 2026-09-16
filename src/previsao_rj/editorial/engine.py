@@ -8,6 +8,7 @@ from pathlib import Path
 from ..collectors.base import now
 from ..normalizers.snapshot import is_stale
 from .contrast import regional_contrast
+from .turnos import apresentador, turno_do_formato
 
 
 def stamp(value):
@@ -67,6 +68,15 @@ def candidates(snapshot, reference=None):
             extra={'dates': [b['date'] for b in weekend], 'forecast': {b['date']: [
                 {k: e.get(k) for k in ('id','max_c','rain_probability_pct','wind_gust_max_kmh')}
                 for e in b['locations']] for b in weekend}})
+    # Turno da noite: a previsão de AMANHÃ (apresentada pela Bia às 18h).
+    amanha = snapshot['forecast'].get('tomorrow')
+    if isinstance(amanha, dict) and amanha.get('locations'):
+        locs_am = amanha['locations']
+        valid_am = [e for e in locs_am if _number(e.get('min_c')) and _number(e.get('max_c'))]
+        if valid_am:
+            c_am = regional_contrast(locs_am)
+            add('amanha_no_rio', 'amanha', valid_am, 5, 3, 3 if c_am['has_contrast'] else 0, 4,
+                extra={'date': amanha.get('date')})
     for event in snapshot.get('events', []) + snapshot.get('football', []):
         try:
             active = event.get('verified') is True and event.get('source_url', '').startswith('https://') and (
@@ -106,9 +116,9 @@ def evaluate(snapshot, history=None, reference=None):
         parts['novelty'] = 5 if previous is None else 0 if previous.get('facts') == candidate['facts'] else 3
         candidate['total'] = sum(parts.values())
         candidate['classification'] = classify(candidate['total'])
-        candidate['character'] = 'bia' if candidate['format'] in {'vai_dar_praia', 'fim_de_semana'} else 'bira'
-        if len(history) >= 2 and all(h.get('character') == candidate['character'] for h in history[-2:]):
-            candidate['character'] = 'bia' if candidate['character'] == 'bira' else 'bira'
+        # Apresentador fixo por turno: Bira de manhã (hoje), Bia à noite (amanhã).
+        candidate['turno'] = turno_do_formato(candidate['format'])
+        candidate['character'] = apresentador(candidate['format'])
         identity = json.dumps([candidate['format'], candidate['topic'], candidate['facts'],
                               candidate['extra']], sort_keys=True, ensure_ascii=False)
         candidate['hook_key'] = hashlib.sha256(identity.encode()).hexdigest()[:20]

@@ -8,7 +8,8 @@ from .script import (build_script, decimal_br, em_local, em_locais,
                      number, para_voz, pico_escrito, pico_falado)
 
 TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA ONDE?',
-          'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?'}
+          'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?',
+          'amanha_no_rio': 'AMANHÃ NO RIO'}
 
 
 def batida(fala, tipo='nenhum', legenda=None, **dados):
@@ -68,6 +69,59 @@ def rio_antes_de_sair(snapshot, incerto):
     return batidas
 
 
+def amanha_no_rio(snapshot, incerto):
+    """Reel da noite (Bia, 18h): como fica o tempo AMANHÃ.
+
+    Mesma espinha do `rio_antes_de_sair`, lendo o bloco `tomorrow` do snapshot:
+    abertura sem cartão, gancho de temperatura, as cinco previsões, chance de
+    chuva, vento (se relevante) e o fecho. Nenhuma batida sem o dado dela.
+    """
+    bloco = snapshot['forecast'].get('tomorrow') or {}
+    locs = bloco.get('locations') or []
+    temps = [e for e in locs if number(e.get('max_c'))]
+    if not temps:
+        raise ValueError('Sem temperatura válida para amanhã')
+    quente = max(temps, key=lambda e: e['max_c'])
+    chuvas = [e for e in locs if number(e.get('rain_probability_pct'))]
+    contraste = regional_contrast(locs)
+    batidas = [batida('Amanhã, o tempo no Rio fica assim.')]
+    if incerto:
+        batidas.append(batida('O cenário para amanhã ainda tem incerteza. Pode mudar até de manhã.'))
+    if contraste['temperature']['relevant']:
+        alto, baixo = contraste['temperature']['high'], contraste['temperature']['low']
+        vao = contraste['temperature']['spread']
+        batidas.append(batida(
+            f"A temperatura vai mudar pela região: {vao:g} graus separam "
+            f"{alto['name']} de {baixo['name']}.",
+            'gancho', numero=f'{vao:g}°', sub='DE DIFERENÇA AMANHÃ'))
+    else:
+        batidas.append(batida(
+            f"A máxima chega a {quente['max_c']:g} graus {em_local(quente['name'])}.",
+            'gancho', numero=f"{quente['max_c']:g}°", sub='MÁXIMA PREVISTA AMANHÃ'))
+    # Sem repetir "amanhã" em toda frase: a abertura já disse, e o selo e os
+    # cartões mostram AMANHÃ na tela.
+    resumo = batida_resumo(locs, 'AMANHÃ NA REGIÃO')
+    if resumo:
+        batidas.append(resumo)
+    if chuvas:
+        molhado = max(chuvas, key=lambda e: e['rain_probability_pct'])
+        pct = molhado['rain_probability_pct']
+        batidas.append(batida(
+            f"{em_local(molhado['name'], inicio=True)}, a chance de chuva amanhã é de {pct:g} por cento.",
+            'gancho', numero=f'{pct:g}%', sub='CHANCE DE CHUVA AMANHÃ'))
+    else:
+        batidas.append(batida('A probabilidade de chuva para amanhã não está disponível nesta coleta.'))
+    if contraste['gust']['relevant']:
+        alta = contraste['gust']['high']
+        batidas.append(batida(
+            f"Atenção ao vento: rajadas de até {alta['value']:g} quilômetros por hora "
+            f"{em_local(alta['name'])}.",
+            'alerta', titulo='VENTO AMANHÃ',
+            detalhe=f"até {alta['value']:g} km/h {em_local(alta['name'])}"))
+    batidas.append(batida('Amanhã cedo tem atualização. Previsão RJ.', 'cta'))
+    return batidas
+
+
 def batida_resumo(locations, titulo, quando=''):
     """Cartão das cinco previsões obrigatórias (ver editorial/cinco.py)."""
     cidades = cinco_regioes(locations)
@@ -85,6 +139,9 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
     if format == 'rio_antes_de_sair':
         return {'title': TITLES[format], 'candidate': candidate, 'publication': False,
                 'beats': rio_antes_de_sair(snapshot, candidate['language'] == 'probabilistic')}
+    if format == 'amanha_no_rio':
+        return {'title': TITLES[format], 'candidate': candidate, 'publication': False,
+                'beats': amanha_no_rio(snapshot, candidate['language'] == 'probabilistic')}
     lines = []
     if format == 'chove_onde':
         topic = candidate['topic']
