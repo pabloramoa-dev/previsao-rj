@@ -45,12 +45,23 @@ def test_abertura_e_cta_nunca_saem():
     assert ficam[-1]['fala'] == 'cta'
 
 
-def test_resumo_sai_antes_do_alerta():
-    """Vento forte muda o comportamento de quem assiste; a lista de máximas não."""
+def test_resumo_das_cinco_previsoes_nunca_sai():
+    """Decisão de 16/09/2026: todo Reel mostra as cinco previsões (Niterói,
+    Centro do Rio, Zona Sul, Baixada e Campo Grande). Quem cai é o gancho
+    secundário; o alerta continua preservado."""
     _, cortadas = cortar_para_janela(CASO_REAL, DURACOES_REAIS)
     tipos = [CASO_REAL[i]['tipo'] for i in cortadas]
-    assert 'resumo' in tipos
+    assert 'resumo' not in tipos
     assert 'alerta' not in tipos
+    assert 'gancho' in tipos
+
+
+def test_resumo_protegido_mesmo_quando_e_a_batida_mais_longa():
+    batidas = [b('nenhum'), b('resumo'), b('gancho'), b('nenhum'), b('cta')]
+    duracoes = [8.0, 14.0, 6.0, 9.0, 6.0]  # 43 s
+    ficam, cortadas = cortar_para_janela(batidas, duracoes)
+    assert 1 not in cortadas
+    assert any(x['tipo'] == 'resumo' for x in ficam)
 
 
 def test_corte_para_quando_ja_coube():
@@ -63,13 +74,16 @@ def test_corte_para_quando_ja_coube():
 
 
 def test_nao_cai_abaixo_do_piso_quando_da_para_evitar():
-    batidas = [b('nenhum'), b('resumo'), b('gancho'), b('cta')]
-    duracoes = [10.0, 6.0, 20.0, 6.0]  # 42 s
+    # Cortar o gancho (20 s, o primeiro da fila) derrubaria o Reel para 22 s;
+    # o corte pula ele e tira a incerteza (6 s).
+    batidas = [b('nenhum'), b('gancho'), b('nenhum'), b('resumo'), b('cta')]
+    duracoes = [5.0, 20.0, 6.0, 6.0, 5.0]  # 42 s
     ficam, cortadas = cortar_para_janela(batidas, duracoes)
     restante = sum(d for i, d in enumerate(duracoes) if i not in cortadas)
     assert restante <= TETO
     assert restante >= PISO
-    assert len(ficam) == 3
+    assert cortadas == [2]
+    assert len(ficam) == 4
 
 
 def test_roteiro_impossivel_para_no_minimo_e_deixa_o_qa_recusar():
