@@ -1,6 +1,7 @@
 """Roteiros ancorados nos valores disponíveis, sem contraste inventado."""
 from __future__ import annotations
 import math
+import re
 from .contrast import regional_contrast
 
 
@@ -86,6 +87,107 @@ def janela_legivel(janela: dict | None, agora: int | None = None) -> dict | None
     if pico and number(prob) and (agora is None or (h_pico is not None and h_pico >= agora)):
         return {'tipo': 'pico', 'hora': pico, 'probabilidade': prob}
     return None
+
+
+# ------------------------------------------------------- hora para a voz
+
+# O Kokoro le "23:00" como "vinte e tres zero zero" (Reel de 15/09/2026). A fala
+# recebe a hora por extenso, com artigo e crase certos; a legenda na tela fica
+# com a forma curta ("23h"), que se le num relance.
+_HORAS = ['zero', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete',
+          'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'catorze', 'quinze',
+          'dezesseis', 'dezessete', 'dezoito', 'dezenove', 'vinte',
+          'vinte e uma', 'vinte e duas', 'vinte e três']
+_MINUTOS = {15: 'quinze', 30: 'trinta', 45: 'quarenta e cinco'}
+_DE = {'a': 'da', 'as': 'das', 'o': 'do'}
+_A = {'a': 'à', 'as': 'às', 'o': 'ao'}
+
+
+def _partes(texto):
+    try:
+        h, m = (int(x) for x in str(texto).split(':')[:2])
+    except (ValueError, AttributeError):
+        return None
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        return None
+    return h, m
+
+
+def _falada(texto, com_unidade=True):
+    """(artigo, expressão) — ('as', 'vinte e três horas'), ('o', 'meio-dia')."""
+    partes = _partes(texto)
+    if partes is None:
+        return None
+    h, m = partes
+    if m == 0 and h == 0:
+        return 'a', 'meia-noite'
+    if m == 0 and h == 12:
+        return 'o', 'meio-dia'
+    artigo = 'a' if h == 1 else 'as'
+    if m:
+        return artigo, f"{_HORAS[h]} e {_MINUTOS.get(m, m)}"
+    unidade = (' hora' if h == 1 else ' horas') if com_unidade else ''
+    return artigo, _HORAS[h] + unidade
+
+
+def hora_escrita(texto) -> str:
+    """'23:00' -> '23h'; '19:30' -> '19h30'; 0h e 12h viram meia-noite e meio-dia."""
+    partes = _partes(texto)
+    if partes is None:
+        return str(texto)
+    h, m = partes
+    if m == 0 and h in (0, 12):
+        return 'meia-noite' if h == 0 else 'meio-dia'
+    return f'{h}h{m:02d}' if m else f'{h}h'
+
+
+def faixa_falada(inicio, fim) -> str:
+    """'20:00', '23:00' -> 'das vinte às vinte e três horas'."""
+    fim_ = _falada(fim)
+    ini_ = _falada(inicio, com_unidade=not (fim_ and fim_[0] == 'as'))
+    if ini_ is None or fim_ is None:
+        return f'entre {inicio} e {fim}'
+    return f"{_DE[ini_[0]]} {ini_[1]} {_A[fim_[0]]} {fim_[1]}"
+
+
+def faixa_escrita(inicio, fim) -> str:
+    ini_, fim_ = _falada(inicio), _falada(fim)
+    if ini_ is None or fim_ is None:
+        return f'entre {inicio} e {fim}'
+    return f"{_DE[ini_[0]]} {hora_escrita(inicio)} {_A[fim_[0]]} {hora_escrita(fim)}"
+
+
+def pico_falado(hora) -> str:
+    """'19:00' -> 'por volta das dezenove horas'."""
+    h = _falada(hora)
+    return f"por volta {_DE[h[0]]} {h[1]}" if h else f'por volta das {hora}'
+
+
+def pico_escrito(hora) -> str:
+    h = _falada(hora)
+    return f"por volta {_DE[h[0]]} {hora_escrita(hora)}" if h else f'por volta das {hora}'
+
+
+_DECIMAL = re.compile(r'(?<=\d)\.(?=\d)')
+_HORA_DIGITAL = re.compile(r'\b(\d{1,2}):(\d{2})\b')
+
+
+def decimal_br(texto: str) -> str:
+    """'3.1 mm' -> '3,1 mm'. Na tela e na voz, o separador é a vírgula."""
+    return _DECIMAL.sub(',', texto)
+
+
+def para_voz(texto: str) -> str:
+    """Última passada antes do Kokoro.
+
+    O espeak por trás dele lê "3.1" como "três um" e "23:00" como "vinte e três
+    zero zero". Vírgula decimal vira "vírgula"; hora digital que tenha escapado
+    do roteiro vira extenso. Hora inválida (ex.: "25:99") fica como está.
+    """
+    def _hora(m):
+        falada = _falada(m.group(0))
+        return falada[1] if falada else m.group(0)
+    return decimal_br(_HORA_DIGITAL.sub(_hora, texto))
 
 
 def hora_agora() -> int:

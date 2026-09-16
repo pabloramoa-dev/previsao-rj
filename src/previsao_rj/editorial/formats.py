@@ -2,14 +2,19 @@
 from datetime import timedelta
 from .contrast import regional_contrast
 from .engine import evaluate, stamp
-from .script import build_script, hora_agora, janela_legivel, number
+from .script import (build_script, decimal_br, faixa_escrita, faixa_falada,
+                     hora_agora, janela_legivel, number, para_voz,
+                     pico_escrito, pico_falado)
 
 TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA ONDE?',
           'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?'}
 
 
-def batida(fala, tipo='nenhum', **dados):
-    return {'fala': fala, 'legenda': fala, 'tipo': tipo, 'dados': dados}
+def batida(fala, tipo='nenhum', legenda=None, **dados):
+    """`legenda` só difere da fala quando a tela pede forma curta ("23h")
+    e a voz pede extenso ("vinte e três horas")."""
+    return {'fala': para_voz(fala), 'legenda': decimal_br(legenda or fala),
+            'tipo': tipo, 'dados': dados}
 
 
 def rio_antes_de_sair(snapshot, incerto):
@@ -88,9 +93,18 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
             if loc.get('rain_window') and topic in {'chuva','janela_chuva'}:
                 leitura = janela_legivel(loc['rain_window'], hora_agora())
                 if leitura and leitura['tipo'] == 'faixa':
-                    lines.append(f"Os horários com maior probabilidade aparecem entre {leitura['inicio']} e {leitura['fim']}; pode haver intervalos sem chuva.")
+                    resto = '; pode haver intervalos sem chuva.'
+                    lines.append((
+                        'A chuva é mais provável '
+                        + faixa_falada(leitura['inicio'], leitura['fim']) + resto,
+                        'A chuva é mais provável '
+                        + faixa_escrita(leitura['inicio'], leitura['fim']) + resto))
                 elif leitura:
-                    lines.append(f"A maior probabilidade é por volta das {leitura['hora']}, com {leitura['probabilidade']:g} por cento; pode haver intervalos sem chuva.")
+                    resto = (f", com {leitura['probabilidade']:g} por cento; "
+                             'pode haver intervalos sem chuva.')
+                    lines.append((
+                        'A maior probabilidade é ' + pico_falado(leitura['hora']) + resto,
+                        'A maior probabilidade é ' + pico_escrito(leitura['hora']) + resto))
         if topic in {'chuva','janela_chuva'}: lines.append('Probabilidade não indica chuva contínua durante todo o período.')
     elif format == 'fim_de_semana':
         for block in snapshot['forecast'].values():
@@ -129,5 +143,5 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
     if not lines: raise ValueError('Nenhuma fala sustentada pelos dados')
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
     lines.append('Previsão RJ. Confira a atualização antes de sair.')
-    beats=[batida(line) for line in lines]
+    beats=[batida(line[0], legenda=line[1]) if isinstance(line, tuple) else batida(line) for line in lines]
     return {'title':TITLES[format], 'candidate':candidate,'beats':beats,'publication':False}
