@@ -1,6 +1,7 @@
 """Cinco formatos com validação de dados antes de produzir a fala."""
 from datetime import timedelta
 from .contrast import regional_contrast
+from .cinco import cinco_regioes, fala_resumo
 from .engine import evaluate, stamp
 from .script import (build_script, decimal_br, em_local, em_locais,
                      faixa_escrita, faixa_falada, hora_agora, janela_legivel,
@@ -46,13 +47,9 @@ def rio_antes_de_sair(snapshot, incerto):
         batidas.append(batida(
             f"No Rio, a máxima prevista chega a {quente['max_c']:g} graus {em_local(quente['name'])}.",
             'gancho', numero=f"{quente['max_c']:g}°", sub='MÁXIMA PREVISTA HOJE'))
-    cidades = [{'nome': e['name'], 'min': e['min_c'], 'max': e['max_c']}
-               for e in locs if number(e.get('min_c')) and number(e.get('max_c'))]
-    if cidades:
-        batidas.append(batida(
-            f"As máximas ficam entre {frio['max_c']:g} e {quente['max_c']:g} graus "
-            'nos pontos consultados.',
-            'resumo', cidades=cidades[:5], titulo='HOJE NA REGIÃO'))
+    resumo = batida_resumo(locs, 'HOJE NA REGIÃO')
+    if resumo:
+        batidas.append(resumo)
     if chuvoso:
         pct = chuvoso['rain_probability_pct']
         batidas.append(batida(
@@ -69,6 +66,14 @@ def rio_antes_de_sair(snapshot, incerto):
             'alerta', titulo='VENTO', detalhe=f"até {alta['value']:g} km/h {em_local(alta['name'])}"))
     batidas.append(batida('Confira a atualização antes de sair. Previsão RJ.', 'cta'))
     return batidas
+
+
+def batida_resumo(locations, titulo, quando=''):
+    """Cartão das cinco previsões obrigatórias (ver editorial/cinco.py)."""
+    cidades = cinco_regioes(locations)
+    if not cidades:
+        return None
+    return batida(fala_resumo(cidades, quando), 'resumo', cidades=cidades, titulo=titulo)
 
 
 def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
@@ -124,8 +129,8 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
             if not isinstance(block, dict) or block.get('date') not in candidate['extra']['dates']: continue
             values = [e for e in block['locations'] if number(e.get('max_c'))]
             if not values: raise ValueError('Fim de semana com dia sem dados')
-            label = 'sábado' if stamp(block['date']+'T12:00:00-03:00').weekday()==5 else 'domingo'
-            lines.append(f"No {label}, as máximas ficam entre {min(e['max_c'] for e in values):g} e {max(e['max_c'] for e in values):g} graus nos pontos consultados.")
+            # A faixa de máximas de cada dia sai no cartão das cinco previsões
+            # (resumo), inserido abaixo — repetir aqui dobraria a mesma frase.
         lines.append('Confira as próximas atualizações: o cenário pode mudar até o fim de semana.')
     elif format == 'vai_ao_jogo':
         event = candidate['extra']['event']; start,end = stamp(event['start_at']),stamp(event['end_at'])
@@ -157,4 +162,23 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
     lines.append('Previsão RJ. Confira a atualização antes de sair.')
     beats=[batida(line[0], legenda=line[1]) if isinstance(line, tuple) else batida(line) for line in lines]
+    # Todo Reel mostra as cinco previsões obrigatórias, antes do fecho.
+    resumos = []
+    if format == 'fim_de_semana':
+        for block in snapshot['forecast'].values():
+            if not isinstance(block, dict) or block.get('date') not in candidate['extra']['dates']:
+                continue
+            dia = 'SÁBADO' if stamp(block['date']+'T12:00:00-03:00').weekday()==5 else 'DOMINGO'
+            resumos.append(batida_resumo(block['locations'], f'{dia} NA REGIÃO', f'No {dia.lower()}'))
+        # Os dias vêm antes do aviso de que o cenário pode mudar.
+        posicao = len(beats) - 2
+    else:
+        resumos.append(batida_resumo(snapshot['forecast']['today']['locations'], 'HOJE NA REGIÃO'))
+        posicao = len(beats) - 1
+    for r in reversed(resumos):
+        if r:
+            beats.insert(max(posicao, 0), r)
+    if format == 'fim_de_semana' and beats[0]['tipo'] == 'resumo':
+        # Abre sem cartão (o apresentador precisa aparecer na primeira batida).
+        beats.insert(0, batida('Veja como fica o fim de semana no Rio.'))
     return {'title':TITLES[format], 'candidate':candidate,'beats':beats,'publication':False}

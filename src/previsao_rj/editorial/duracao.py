@@ -12,15 +12,15 @@ quando não cabe tudo — que é exatamente o trabalho de um editor.
 
 Ordem de corte, do primeiro a cair para o último:
 
-1. `resumo` — a lista de máximas por cidade. É a batida mais redundante: o
-   cartão na tela já mostra os números, e o gancho principal já deu a leitura.
-2. `gancho` secundário — a segunda leitura numérica do dia.
-3. incerteza (`nenhum` no meio do roteiro) — o aviso de cenário instável.
-4. `alerta` — só cai se nada mais couber. Vento forte é a informação que muda
+1. `gancho` secundário — a segunda leitura numérica do dia.
+2. incerteza (`nenhum` no meio do roteiro) — o aviso de cenário instável.
+3. `alerta` — só cai se nada mais couber. Vento forte é a informação que muda
    o comportamento de quem assiste.
 
-Nunca caem: a abertura e o CTA. Sem abertura não há gancho nos primeiros
-segundos, e sem CTA o Reel não pede nada de quem assistiu.
+Nunca caem: a abertura, o CTA e o `resumo`. Sem abertura não há gancho nos
+primeiros segundos; sem CTA o Reel não pede nada de quem assistiu; e o
+`resumo` é o cartão das cinco previsões obrigatórias (Niterói, Centro do Rio,
+Zona Sul, Baixada e Campo Grande — decisão de 16/09/2026, ver `cinco.py`).
 
 E o corte para em três batidas. Se nem assim couber — caso que exigiria linhas
 de 15 s, coisa que a narração não produz —, o roteiro sai longo e o
@@ -38,13 +38,16 @@ TETO = 38.0
 
 # Maior = sai antes.
 PESO = {
-    'resumo': 4,
     'gancho': 3,
     'nenhum': 2,
     'cidade': 2,
     'alerta': 1,
     'cta': 0,
 }
+
+
+# Tipos que nunca saem, esteja onde estiverem no roteiro.
+PROTEGIDAS = {'resumo', 'cta'}
 
 
 def _ordem_de_corte(batidas: list[dict[str, Any]]) -> list[int]:
@@ -54,7 +57,8 @@ def _ordem_de_corte(batidas: list[dict[str, Any]]) -> list[int]:
     Empate no peso é resolvido pelo índice maior — corta-se o mais tardio,
     preservando a ordem de leitura do que sobra.
     """
-    miolo = range(1, max(len(batidas) - 1, 1))
+    miolo = [i for i in range(1, max(len(batidas) - 1, 1))
+             if batidas[i].get('tipo') not in PROTEGIDAS]
     return sorted(miolo,
                   key=lambda i: (-PESO.get(batidas[i].get('tipo'), 2), -i))
 
