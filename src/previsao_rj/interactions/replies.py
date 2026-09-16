@@ -1,5 +1,6 @@
 """Resposta geográfica fundamentada na coleta, sem envio automático."""
 from ..geo.resolver import resolve
+from ..geo.preposicao import em_local
 from ..normalizers.snapshot import is_stale
 
 
@@ -21,7 +22,7 @@ def prepare_reply(text, snapshot, municipality_hint=None, reference=None):
     loc = next((e for e in snapshot['forecast'].get(key,{}).get('locations',[]) if e['id']==resolution.location.get('id')),None)
     if not loc:
         return {'status':'unavailable','text':f"Ainda não há uma coleta específica para {resolution.location['name']} nesta atualização."}
-    parts = [f"{'Amanhã' if key=='tomorrow' else 'Hoje'} em {loc['name']}:"]
+    parts = [f"{'Amanhã' if key=='tomorrow' else 'Hoje'} {em_local(loc['name'])}:"]
     if loc.get('min_c') is not None and loc.get('max_c') is not None:
         parts.append(f"mínima de {loc['min_c']}°C e máxima de {loc['max_c']}°C.")
     if loc.get('rain_probability_pct') is not None:
