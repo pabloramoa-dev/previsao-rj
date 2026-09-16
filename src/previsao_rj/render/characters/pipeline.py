@@ -115,7 +115,9 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair"):
                'cenario': 'entardecer' if character == 'maria' else 'sol',
                'cenario_tipo': 'quintal' if character == 'maria' else 'varanda',
                'calor': False, 'vento_visual': 0.7, 'demo': snapshot is None,
-               'destaque': 'PREVISÃO RJ', 'destaque_rotulo': 'TESTE DE PERSONAGEM' if snapshot is None else 'TEMPERATURAS'}
+               'destaque': 'PREVISÃO RJ',
+               'destaque_rotulo': ('TESTE DE PERSONAGEM' if snapshot is None
+                                   else 'AMANHÃ' if format == 'amanha_no_rio' else 'TEMPERATURAS')}
     (work / 'conteudo.json').write_text(json.dumps(content, ensure_ascii=False), encoding='utf-8')
     env = dict(os.environ, PREVISAO_RJ_TRAB=str(work),
                PREVISAO_RJ_LIP_JSON=str(work / 'lip_full.json'), PYTHONPATH=str(ROOT))
