@@ -61,6 +61,11 @@ def snapshot_beats(snapshot):
         beat('Veja a previsão atualizada no Previsão Rio e compartilhe com quem sai com você.')]
 
 
+def estilo_vox() -> bool:
+    """Colagem de papel (Vox) é o padrão. PREVISAO_RJ_ESTILO=classico desliga."""
+    return os.environ.get('PREVISAO_RJ_ESTILO', 'vox').strip().lower() != 'classico'
+
+
 def run(cmd, **kwargs):
     subprocess.run([str(x) for x in cmd], check=True, cwd=ROOT, **kwargs)
 
@@ -119,12 +124,31 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair"):
     candidates = list((work / 'media' / 'videos').rglob('Piloto.mp4'))
     if len(candidates) != 1:
         raise RuntimeError(f'Esperado um render, encontrados {len(candidates)}')
-    run(['ffmpeg', '-y', '-v', 'error', '-i', candidates[0], '-i', narration,
-         '-c:v', 'libx264', '-crf', '22', '-preset', 'medium', '-pix_fmt', 'yuv420p',
-         '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-shortest', out])
+    vox = estilo_vox()
+    if vox:
+        # Colagem: grão de papel sobre o vídeo mudo, voz masterizada por ganho
+        # fixo + limitador, e entrega H.264 Main / Level 4.0 a 30 fps.
+        from . import vox_papel as VX
+        mudo = VX.aplicar_textura(candidates[0], work / 'mudo_papel.mp4')
+        master = VX.masterizar(narration, work / 'narracao_master.wav')
+        run(['ffmpeg', '-y', '-v', 'error', '-i', mudo, '-i', master,
+             '-map', '0:v', '-map', '1:a',
+             '-c:v', 'libx264', '-profile:v', 'main', '-level', '4.0', '-preset', 'medium',
+             '-crf', '22', '-pix_fmt', 'yuv420p', '-r', '30',
+             '-c:a', 'aac', '-b:a', '160k', '-ar', '48000',
+             '-movflags', '+faststart', '-shortest', out])
+        run(['ffmpeg', '-y', '-v', 'error', '-i', out, '-vf', 'scale=720:1280',
+             '-c:v', 'libx264', '-profile:v', 'main', '-crf', '24', '-pix_fmt', 'yuv420p',
+             '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
+             out.with_name(out.stem + '_preview_720p.mp4')])
+    else:
+        run(['ffmpeg', '-y', '-v', 'error', '-i', candidates[0], '-i', narration,
+             '-c:v', 'libx264', '-crf', '22', '-preset', 'medium', '-pix_fmt', 'yuv420p',
+             '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-shortest', out])
     run([sys.executable, 'scripts/qa_video.py', out])
     run(['ffmpeg', '-y', '-v', 'error', '-ss', '2', '-i', out, '-frames:v', '1', out.with_suffix('.png')])
     manifest = {'character': character, 'preset': preset, 'filter': audio_filter,
+                'estilo': 'vox' if vox else 'classico',
                 'demo': snapshot is None, 'segments': segments,
                 'source_commit': '90e2ab5e040695821437f711fed25d2875161557',
                 'video': out.name, 'publication': False}

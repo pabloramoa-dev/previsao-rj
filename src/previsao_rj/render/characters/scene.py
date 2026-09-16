@@ -37,6 +37,7 @@ from src.previsao_rj.render.characters import core as L
 from src.previsao_rj.render.characters import lip as LIP
 from src.previsao_rj.render.characters import rj_cast as RJ
 from src.previsao_rj.render.characters import layout as LAY
+from src.previsao_rj.render.characters import vox_papel as VX
 config.frame_width = 8.0
 config.frame_height = 14.222
 config.pixel_width = 1080
@@ -51,6 +52,9 @@ CALOR = CONT.get('calor', False)
 EH_JUAREZ = PERSONAGEM == 'juarez'
 COM_GUARDA_CHUVA = PERSONAGEM not in ('maria', 'juarez')
 FIM = SEGS[-1]['fim']
+# Estilo colagem de papel (Vox) é o padrão; PREVISAO_RJ_ESTILO=classico volta
+# ao visual anterior sem editar arquivo.
+VOX = VX.ativo()
 # Geometria vertical: ver render/characters/layout.py, que e testado no CI.
 TOPO_PAINEL = LAY.TOPO_PAINEL
 Y_MARCA = LAY.Y_MARCA
@@ -146,10 +150,46 @@ def painel(tipo, d):
         return _faixa(d.get('texto', 'SEGUE PRA PREVISÃO DE AMANHÃ'), cor=P.VERM, cor_txt=WHITE)
     return None
 
+def painel_vox(tipo, d, semente):
+    """Mesmo cartão do painel clássico, colado como recorte de papel."""
+    if tipo == 'cta':
+        return VX.cartao_cta(chamada=d.get('chamada', 'TEU BAIRRO NA DM'),
+                             sub=d.get('sub', 'manda o nome e eu respondo a previsão daí'),
+                             largura=P.larg_segura() - 0.3)
+    m = painel(tipo, d)
+    if m is None:
+        return None
+    g = VX.colar_painel(m, semente=semente)
+    if tipo == 'alerta':
+        c = VX.carimbo('ATENÇÃO', cor='amarelo', tam=34, girar=-0.2, sobre='vermelho')
+        c.scale_to_fit_width(min(2.6, g.width * 0.42))
+        c.move_to(g.get_corner(DOWN + RIGHT) + LEFT * 0.9 + DOWN * 0.15)
+        g.add(c)
+    return g
+
+
+def fundo_vox(scene, tipo):
+    """Folha escura, retículas e o cenário do Rio como foto colada."""
+    scene.add(VX.folha())
+    scene.add(VX.reticula(5.6, 5.6, cor='amarelo').move_to([2.4, 3.6, 0]))
+    scene.add(VX.reticula(5.6, 5.6, cor='teal', forma='diag').move_to([-2.4, -4.2, 0]))
+    w, h, yc = 6.9, 8.3, -0.75
+    # Alturas ABSOLUTAS do fundo clássico (pé do guarda-corpo em -3.15 e
+    # linha do mar em 0.6), convertidas para a caixa centrada em yc.
+    foto = VX.cena_rio(w, h, tipo='orla' if tipo == 'orla' else 'urbano',
+                       y_grade=-3.15 - yc, y_mar=0.05 - yc)
+    foto.move_to([0, yc, 0])
+    scene.add(VX.foto_colada(foto, w, h, semente=3, girar=-0.012))
+
+
 class Piloto(MovingCameraScene):
 
     def construct(self):
-        if PERSONAGEM in ('bira', 'bia'):
+        if PERSONAGEM in ('bira', 'bia') and VOX:
+            fundo_vox(self, 'orla' if PERSONAGEM == 'bia' else 'urbano')
+            mascot = RJ.nuvem().scale(.52).move_to([2.55, 2.55, 0]).rotate(0.08)
+            self.add(VX.borda_adesivo([mascot[0]], espessura=14), mascot)
+        elif PERSONAGEM in ('bira', 'bia'):
             self.add(RJ.backdrop('orla' if PERSONAGEM == 'bia' else 'urbano'))
             mascot = RJ.nuvem().scale(.52).move_to([2.8, 2.9, 0])
             self.add(mascot)
@@ -184,7 +224,10 @@ class Piloto(MovingCameraScene):
         # Seguir a posicao (em vez de viajar na lista de sair_de_cena) funciona
         # com qualquer numero de janelas, inclusive sobrepostas.
         sombra.add_updater(lambda m: m.move_to([G.get_center()[0], y_sombra, 0]))
-        self.add(sombra, G)
+        if VOX and PERSONAGEM in ('bira', 'bia'):
+            self.add(sombra, VX.adesivo_apresentador(v), G)
+        else:
+            self.add(sombra, G)
         P.conectar_bracos(v)
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
         v['boca'].set_stroke(opacity=0)
@@ -194,7 +237,7 @@ class Piloto(MovingCameraScene):
             if jw:
                 P.apontar(v, jw)
         extras = P.vestir(self, v, CENARIO, janelas_frio=janelas('tremer') or None, janelas_calor=janelas('abanar') or None, janelas_beber=janelas('beber') or None, com_guarda_chuva=COM_GUARDA_CHUVA)
-        self.add(P.marca_dagua().move_to([0, Y_MARCA, 0]))
+        self.add((VX.marca() if VOX else P.marca_dagua()).move_to([0, Y_MARCA, 0]))
         # Resumo, gancho e CTA ocupam o centro da tela. Sem tirar o apresentador,
         # o cartaz aparece em cima do rosto dele — que foi o defeito visto no
         # primeiro ensaio. Janelas vizinhas sao fundidas para ele nao voltar ao
@@ -213,7 +256,8 @@ class Piloto(MovingCameraScene):
                 break
             ini = max(SEGS[i]['ini'], ABERTURA)
             fim = SEGS[i]['fim'] if i + 1 < len(BATIDAS) else FIM - LIMPO
-            m = painel(b['tipo'], b.get('dados') or {})
+            m = (painel_vox(b['tipo'], b.get('dados') or {}, semente=i + 1) if VOX
+                 else painel(b['tipo'], b.get('dados') or {}))
             if m is None:
                 continue
             if b['tipo'] in ('gancho', 'cta'):
@@ -223,7 +267,7 @@ class Piloto(MovingCameraScene):
                 # 5.5, e centralizar fazia o cartao alto invadir a marca.
                 m.shift([0, TOPO_PAINEL - m.get_top()[1], 0])
             paineis.append((ini, fim, m))
-        self.add(P.trilha_temporal(paineis, pop=0.2))
+        self.add(VX.trilha_colada(paineis) if VOX else P.trilha_temporal(paineis, pop=0.2))
         destaque = CONT.get('destaque')
         if destaque:
             fim_selo = FIM - LIMPO
@@ -235,7 +279,9 @@ class Piloto(MovingCameraScene):
                 if painel(b['tipo'], b.get('dados') or {}) is not None:
                     fim_selo = max(SEGS[i]['ini'], ABERTURA)
                     break
-            base_selo = P.selo_cidade(destaque, CONT.get('destaque_rotulo', 'HOJE EM'))
+            base_selo = (VX.selo(destaque, CONT.get('destaque_rotulo', 'HOJE EM'),
+                                 largura=P.larg_segura() - 0.4) if VOX
+                         else P.selo_cidade(destaque, CONT.get('destaque_rotulo', 'HOJE EM')))
             base_selo.move_to([0, Y_SELO, 0])
             selo = base_selo.copy()
             self.add(selo)
@@ -254,7 +300,11 @@ class Piloto(MovingCameraScene):
                 continue
             ini = max(SEGS[i]['ini'], ABERTURA)
             fim = SEGS[i]['fim'] if i + 1 < len(BATIDAS) else FIM - LIMPO
-            legs += P.legenda_karaoke(b['legenda'], ini, fim, y=Y_LEGENDA, fs=42)
+            if VOX:
+                legs += VX.legenda_karaoke_papel(b['legenda'], ini, fim, y=Y_LEGENDA, fs=42,
+                                                 larg=P.SEGURA - 0.6)
+            else:
+                legs += P.legenda_karaoke(b['legenda'], ini, fim, y=Y_LEGENDA, fs=42)
         self.add(P.trilha_temporal(legs, pop=0.1))
         jn = [(SEGS[i]['ini'], SEGS[i]['fim']) for i, b in enumerate(BATIDAS) if i < len(SEGS) and (b.get('dados') or {}).get('nevoa')]
         if jn and CENARIO != 'frio':
