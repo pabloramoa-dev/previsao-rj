@@ -46,6 +46,8 @@ def main() -> None:
     p.add_argument('--out', default='output/pauta.json')
     p.add_argument('--exigir-inedito-hoje', action='store_true',
                    help='sai por seguir=nao se a fila ja registra publicacao de hoje')
+    p.add_argument('--turno', choices=('manha', 'noite'), default=None,
+                   help='manha = previsao do dia (Bira); noite = previsao de amanha (Bia)')
     p.add_argument('--exigir-pauta', action='store_true',
                    help='falha (em vez de seguir=nao) quando nao ha item pronto')
     args = p.parse_args()
@@ -53,16 +55,17 @@ def main() -> None:
     hoje = now().date().isoformat()
 
     if args.exigir_inedito_hoje:
-        publicado = state.published_on(args.queue, hoje)
+        publicado = state.published_on(args.queue, hoje, turno=args.turno)
         if publicado is not None:
-            print(f'Ja publicado hoje ({hoje}): {publicado.get("format")} '
+            print(f'Ja publicado hoje ({hoje}, turno {args.turno or "qualquer"}): '
+                  f'{publicado.get("format")} '
                   f'{publicado.get("topic")} media_id={publicado.get("media_id")}')
             anotar(seguir='nao', motivo='ja_publicado_hoje')
             return
 
-    item = state.next_ready(args.queue)
+    item = state.next_ready(args.queue, turno=args.turno)
     if item is None:
-        print('Fila sem item pronto e dentro da validade.')
+        print(f'Fila sem item pronto e dentro da validade (turno {args.turno or "qualquer"}).')
         if args.exigir_pauta:
             raise SystemExit('nenhuma pauta publicavel: execucao interrompida')
         anotar(seguir='nao', motivo='sem_pauta_pronta')
