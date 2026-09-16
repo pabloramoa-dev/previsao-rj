@@ -19,10 +19,15 @@ on:
         options: [fixture, live]
         default: fixture
       personagem:
-        description: "Apresentador — 'auto' segue a alternância do motor editorial"
+        description: "Apresentador — 'auto' segue o turno (Bira de manhã, Bia à noite)"
         type: choice
         options: [auto, bira, bia]
         default: auto
+      turno:
+        description: "Pauta ao vivo — manhã = previsão do dia; noite = previsão de amanhã"
+        type: choice
+        options: [manha, noite]
+        default: manha
       publicar:
         description: "Publicar no @previsaorj? Desmarcado = somente artifact"
         type: boolean
@@ -105,6 +110,7 @@ jobs:
           python -m scripts.escolher_pauta \
             --queue data/editorial_queue.json \
             --out output/pauta.json \
+            --turno "${{ inputs.turno }}" \
             --exigir-pauta
 
       - name: Render com a pauta escolhida

@@ -1,8 +1,10 @@
-name: Reel da manhã — Previsão RJ
+name: Reel da noite — Previsão RJ
 
-# Publicação diária da MANHÃ (6h): Bira do Tempo com a previsão do dia.
-# O Reel da noite (18h, Bia com a previsão de amanhã) é o `reel_noite.yml`.
-# Cada turno tem a sua trava: o da manhã só conta publicação da manhã.
+# Publicação diária da NOITE (18h): Bia da Orla com a previsão de AMANHÃ.
+# O Reel da manhã (6h, Bira com a previsão do dia) é o `reel_manha.yml`.
+# Cada turno tem a sua trava: o da noite só conta publicação da noite
+# (formato `amanha_no_rio`). Tudo o que está explicado abaixo sobre cron,
+# trava e publicação vale igual ao Reel da manhã.
 #
 # Por que TRÊS horários de cron e não um: o agendamento do GitHub atrasa. Em
 # setembro/2026 o histórico agendado para 06:00 rodou às 12:17, e o
@@ -25,13 +27,13 @@ name: Reel da manhã — Previsão RJ
 
 on:
   schedule:
-    - cron: "30 7 * * *"   # 04:30 America/Sao_Paulo
-    - cron: "0 8 * * *"    # 05:00 America/Sao_Paulo
-    - cron: "30 8 * * *"   # 05:30 America/Sao_Paulo
+    - cron: "30 19 * * *"  # 16:30 America/Sao_Paulo
+    - cron: "0 20 * * *"   # 17:00 America/Sao_Paulo
+    - cron: "30 20 * * *"  # 17:30 America/Sao_Paulo
   # Gatilho externo opcional (cron-job.org ou outro), para quando o horário
-  # precisar ser exato: POST /repos/:owner/:repo/dispatches {"event_type":"reel_manha"}
+  # precisar ser exato: POST /repos/:owner/:repo/dispatches {"event_type":"reel_noite"}
   repository_dispatch:
-    types: [reel_manha]
+    types: [reel_noite]
   workflow_dispatch:
     inputs:
       publicar:
@@ -87,12 +89,12 @@ jobs:
 
           fila = pathlib.Path('data/editorial_queue.json')
           itens = json.loads(fila.read_text(encoding='utf-8')) if fila.exists() else []
-          # Só conta o turno da MANHÃ: a previsão de amanhã (Bia, 18h) é do
-          # turno da noite e não trava este Reel.
+          # Só conta o turno da NOITE: o Reel da manhã (Bira, previsão do
+          # dia) não trava este Reel.
           ja = [i for i in itens
                 if i.get('status') == 'published'
                 and str(i.get('published_at', ''))[:10] == hoje
-                and i.get('format') != 'amanha_no_rio']
+                and i.get('format') == 'amanha_no_rio']
 
           pular = 'sim' if (ja and not ignorar) else 'nao'
           print(f'hoje={hoje} pular={pular} publicar={publicar} '
@@ -104,7 +106,7 @@ jobs:
           resumo = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
           if pular == 'sim':
               resumo.write_text(
-                  f'### Reel de {hoje} já publicado\n\n'
+                  f'### Reel da noite de {hoje} já publicado\n\n'
                   f'- formato: `{ja[-1].get("format")}`\n'
                   f'- media_id: `{ja[-1].get("media_id")}`\n\n'
                   'Esta tentativa de cron encerrou sem falar com a Meta.\n',
@@ -155,7 +157,7 @@ jobs:
           python -m scripts.escolher_pauta \
             --queue data/editorial_queue.json \
             --out output/pauta.json \
-            --turno manha \
+            --turno noite \
             --exigir-inedito-hoje
 
       - name: Registrar por que não houve Reel
@@ -237,8 +239,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="reel-${{ github.run_id }}"
-          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Reel diário @previsaorj"
+          TAG="reel-noite-${{ github.run_id }}"
+          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Reel da noite @previsaorj"
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
 
       - name: Publicar o Reel do dia
