@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..geo.preposicao import em_local
+
 ASSINATURA = '@previsaorj — O tempo do Rio para decidir seu dia.'
 
 HASHTAGS = {
@@ -70,8 +72,8 @@ def _linhas_rio_antes_de_sair(snapshot: dict, item: dict, names: dict) -> list[s
     quente = max(locs, key=lambda e: e['max_c'])
     frio = min(locs, key=lambda e: e['max_c'])
     chuvosos = [e for e in _today(snapshot) if _num(e.get('rain_probability_pct'))]
-    linhas = [f"🌡️ Máximas entre {_g(frio['max_c'])}° em {frio['name']} "
-              f"e {_g(quente['max_c'])}° em {quente['name']}"]
+    linhas = [f"🌡️ Máximas entre {_g(frio['max_c'])}° {em_local(frio['name'])} "
+              f"e {_g(quente['max_c'])}° {em_local(quente['name'])}"]
     if chuvosos:
         molhado = max(chuvosos, key=lambda e: e['rain_probability_pct'])
         linhas.append(f"☔ Maior chance de chuva: {molhado['name']}, "
@@ -153,10 +155,10 @@ def _linhas_chove_onde(snapshot: dict, item: dict, names: dict) -> list[str]:
             onde = names.get(local_id, local_id)
             if leitura['tipo'] == 'faixa':
                 linhas.append(f"🕒 Maior chance entre {leitura['inicio']} e "
-                              f"{leitura['fim']} em {onde}")
+                              f"{leitura['fim']} {em_local(onde)}")
             else:
                 linhas.append(f"🕒 Pico por volta das {leitura['hora']}, "
-                              f"{_g(leitura['probabilidade'])}% em {onde}")
+                              f"{_g(leitura['probabilidade'])}% {em_local(onde)}")
             break
     return linhas
 
