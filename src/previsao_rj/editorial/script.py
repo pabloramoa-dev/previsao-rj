@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 from .contrast import regional_contrast
+from ..geo.preposicao import em_local, em_locais  # noqa: F401  (reexportado)
 
 
 def number(value):
@@ -22,16 +23,16 @@ def build_script(snapshot: dict) -> dict:
     if contrast["temperature"]["relevant"]:
         hook = "A TEMPERATURA MUDA PELA REGIÃO"
         text = (f"No Rio, {hottest['name']} tem máxima prevista de {hottest['max_c']:g} graus. "
-                f"Em {coolest['name']}, são {coolest['max_c']:g} graus. ")
+                f"{em_local(coolest['name'], inicio=True)}, são {coolest['max_c']:g} graus. ")
     else:
         hook = "RIO ANTES DE SAIR"
         text = (f"No Rio, as máximas previstas ficam entre {coolest['max_c']:g} "
                 f"e {hottest['max_c']:g} graus nos pontos consultados. ")
     if contrast["gust"]["relevant"]:
         high = contrast["gust"]["high"]
-        text += f"Atenção ao vento: rajadas previstas de até {high['value']:g} quilômetros por hora em {high['name']}. "
+        text += f"Atenção ao vento: rajadas previstas de até {high['value']:g} quilômetros por hora {em_local(high['name'])}. "
     if wettest:
-        text += (f"Em {wettest['name']}, a probabilidade de chuva no dia é de "
+        text += (f"{em_local(wettest['name'], inicio=True)}, a probabilidade de chuva no dia é de "
                  f"{wettest['rain_probability_pct']:g} por cento. Isso não significa chuva o dia inteiro. ")
     else:
         text += "A probabilidade de chuva não está disponível nesta coleta. "

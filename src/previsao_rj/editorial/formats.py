@@ -2,9 +2,9 @@
 from datetime import timedelta
 from .contrast import regional_contrast
 from .engine import evaluate, stamp
-from .script import (build_script, decimal_br, faixa_escrita, faixa_falada,
-                     hora_agora, janela_legivel, number, para_voz,
-                     pico_escrito, pico_falado)
+from .script import (build_script, decimal_br, em_local, em_locais,
+                     faixa_escrita, faixa_falada, hora_agora, janela_legivel,
+                     number, para_voz, pico_escrito, pico_falado)
 
 TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA ONDE?',
           'vai_dar_praia': 'VAI DAR PRAIA?', 'fim_de_semana': 'SEU FIM DE SEMANA', 'vai_ao_jogo': 'VAI AO JOGO?'}
@@ -44,7 +44,7 @@ def rio_antes_de_sair(snapshot, incerto):
             'gancho', numero=f'{vao:g}°', sub='DE DIFERENÇA NA REGIÃO'))
     else:
         batidas.append(batida(
-            f"No Rio, a máxima prevista chega a {quente['max_c']:g} graus em {quente['name']}.",
+            f"No Rio, a máxima prevista chega a {quente['max_c']:g} graus {em_local(quente['name'])}.",
             'gancho', numero=f"{quente['max_c']:g}°", sub='MÁXIMA PREVISTA HOJE'))
     cidades = [{'nome': e['name'], 'min': e['min_c'], 'max': e['max_c']}
                for e in locs if number(e.get('min_c')) and number(e.get('max_c'))]
@@ -56,7 +56,7 @@ def rio_antes_de_sair(snapshot, incerto):
     if chuvoso:
         pct = chuvoso['rain_probability_pct']
         batidas.append(batida(
-            f"Em {chuvoso['name']}, a chance de chuva no dia é de {pct:g} por cento. "
+            f"{em_local(chuvoso['name'], inicio=True)}, a chance de chuva no dia é de {pct:g} por cento. "
             'Não significa chuva o dia inteiro.',
             'gancho', numero=f'{pct:g}%', sub='CHANCE DE CHUVA'))
     else:
@@ -65,8 +65,8 @@ def rio_antes_de_sair(snapshot, incerto):
         alta = contraste['gust']['high']
         batidas.append(batida(
             f"Atenção ao vento: rajadas de até {alta['value']:g} quilômetros por hora "
-            f"em {alta['name']}.",
-            'alerta', titulo='VENTO', detalhe=f"até {alta['value']:g} km/h em {alta['name']}"))
+            f"{em_local(alta['name'])}.",
+            'alerta', titulo='VENTO', detalhe=f"até {alta['value']:g} km/h {em_local(alta['name'])}"))
     batidas.append(batida('Confira a atualização antes de sair. Previsão RJ.', 'cta'))
     return batidas
 
@@ -85,26 +85,39 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
         topic = candidate['topic']
         metric, unit = {'temperatura':('max_c','graus'), 'vento':('wind_gust_max_kmh','quilômetros por hora'),
                         'chuva':('rain_probability_pct','por cento')} .get(topic, ('rain_mm', 'milímetros'))
+        janelas = []   # (leitura, [nomes]) na ordem em que aparecem
         for loc in locs[:3]:
             value = loc.get(metric)
             if number(value):
                 label = {'temperatura':'máxima', 'vento':'rajadas', 'chuva':'probabilidade de chuva no dia'}.get(topic,'volume previsto no dia')
-                lines.append(f"Em {loc['name']}, {label} de {value:g} {unit}.")
+                lines.append(f"{em_local(loc['name'], inicio=True)}, {label} de {value:g} {unit}.")
             if loc.get('rain_window') and topic in {'chuva','janela_chuva'}:
                 leitura = janela_legivel(loc['rain_window'], hora_agora())
-                if leitura and leitura['tipo'] == 'faixa':
-                    resto = '; pode haver intervalos sem chuva.'
-                    lines.append((
-                        'A chuva é mais provável '
-                        + faixa_falada(leitura['inicio'], leitura['fim']) + resto,
-                        'A chuva é mais provável '
-                        + faixa_escrita(leitura['inicio'], leitura['fim']) + resto))
-                elif leitura:
-                    resto = (f", com {leitura['probabilidade']:g} por cento; "
-                             'pode haver intervalos sem chuva.')
-                    lines.append((
-                        'A maior probabilidade é ' + pico_falado(leitura['hora']) + resto,
-                        'A maior probabilidade é ' + pico_escrito(leitura['hora']) + resto))
+                if not leitura:
+                    continue
+                grupo = next((g for g in janelas if g[0] == leitura), None)
+                if grupo:
+                    grupo[1].append(loc['name'])
+                else:
+                    janelas.append((leitura, [loc['name']]))
+        # Uma frase por horário, com todos os bairros que o compartilham: o
+        # Reel de 15/09/2026 repetia "das vinte e uma às vinte e três horas"
+        # bairro a bairro.
+        for leitura, nomes in janelas:
+            onde = em_locais(nomes, inicio=True)
+            if leitura['tipo'] == 'faixa':
+                resto = '; pode haver intervalos sem chuva.'
+                lines.append((
+                    f"{onde}, a chuva é mais provável "
+                    + faixa_falada(leitura['inicio'], leitura['fim']) + resto,
+                    f"{onde}, a chuva é mais provável "
+                    + faixa_escrita(leitura['inicio'], leitura['fim']) + resto))
+            else:
+                resto = (f", com {leitura['probabilidade']:g} por cento; "
+                         'pode haver intervalos sem chuva.')
+                lines.append((
+                    f"{onde}, a maior probabilidade é " + pico_falado(leitura['hora']) + resto,
+                    f"{onde}, a maior probabilidade é " + pico_escrito(leitura['hora']) + resto))
         if topic in {'chuva','janela_chuva'}: lines.append('Probabilidade não indica chuva contínua durante todo o período.')
     elif format == 'fim_de_semana':
         for block in snapshot['forecast'].values():
@@ -138,7 +151,7 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
             if point.get('date')!=snapshot['forecast']['today'].get('date'): raise ValueError('Ondas fora da data consultada')
             wave = point.get('wave_height_max')
             if not number(wave): raise ValueError('Ondas indisponíveis para a praia')
-            lines.append(f"Em {loc['name']}, ondas modeladas de até {wave:g} metros. O boletim oficial informa: {report.get('classification','não informada')}.")
+            lines.append(f"{em_local(loc['name'], inicio=True)}, ondas modeladas de até {wave:g} metros. O boletim oficial informa: {report.get('classification','não informada')}.")
         lines.append('A previsão do tempo não determina segurança para banho. Confira a sinalização e os avisos locais.')
     if not lines: raise ValueError('Nenhuma fala sustentada pelos dados')
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
