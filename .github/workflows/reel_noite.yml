@@ -30,8 +30,10 @@ on:
     - cron: "30 19 * * *"  # 16:30 America/Sao_Paulo
     - cron: "0 20 * * *"   # 17:00 America/Sao_Paulo
     - cron: "30 20 * * *"  # 17:30 America/Sao_Paulo
-  # Gatilho externo opcional (cron-job.org ou outro), para quando o horário
-  # precisar ser exato: POST /repos/:owner/:repo/dispatches {"event_type":"reel_noite"}
+  # GATILHO PRINCIPAL (desde 17/09/2026): cron-job.org às 17:40 (America/Sao_Paulo)
+  # chama POST /repos/:owner/:repo/dispatches {"event_type":"reel_noite"} com um
+  # token fine-grained só deste repo (Contents: write). Os três crons acima
+  # ficam como reserva: em 17/09 o GitHub descartou os três.
   repository_dispatch:
     types: [reel_noite]
   workflow_dispatch:
@@ -65,7 +67,13 @@ jobs:
       pular: ${{ steps.conferir.outputs.pular }}
       publicar: ${{ steps.conferir.outputs.publicar }}
     steps:
+      # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
+      # atrasado que ficou esperando na fila de concorrência carregaria a fila
+      # editorial antiga (sem o Reel que acabou de sair) e as três travas
+      # deixariam passar um Reel repetido.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
       - name: Já saiu Reel hoje?
         id: conferir
         env:
@@ -124,7 +132,13 @@ jobs:
       # PREVISAO_RJ_ESTILO=classico em Settings > Variables.
       PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
     steps:
+      # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
+      # atrasado que ficou esperando na fila de concorrência carregaria a fila
+      # editorial antiga (sem o Reel que acabou de sair) e as três travas
+      # deixariam passar um Reel repetido.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
 
