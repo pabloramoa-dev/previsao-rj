@@ -192,6 +192,16 @@ def para_voz(texto: str) -> str:
 
 
 def hora_agora() -> int:
-    """Hora cheia em Brasilia. Isolada para os testes poderem fixar o relogio."""
+    """Hora cheia em Brasilia. Isolada para os testes poderem fixar o relogio.
+
+    Com PREVISAO_RJ_HORA_ALVO (ex.: "6"), vale a hora em que o Reel VAI AO AR,
+    nao a do render: o video fica pronto ~40 min antes, e uma janela de chuva
+    que termina nesse intervalo ja teria passado para quem assiste.
+    """
+    import os
+    alvo = os.environ.get('PREVISAO_RJ_HORA_ALVO', '').strip()
+    if alvo:
+        from ..collectors.base import now
+        return max(int(alvo.split(':')[0]), now().hour)
     from ..collectors.base import now
     return now().hour
