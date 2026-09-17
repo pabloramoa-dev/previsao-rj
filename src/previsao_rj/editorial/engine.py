@@ -11,6 +11,10 @@ from .contrast import regional_contrast
 from .turnos import apresentador, turno_do_formato
 
 
+# Formatos que sustentam o Reel de TODO dia (um por turno).
+BASE_DIARIA = frozenset({'rio_antes_de_sair', 'amanha_no_rio'})
+
+
 def stamp(value):
     dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
     if dt.tzinfo is None:
@@ -109,6 +113,7 @@ def evaluate(snapshot, history=None, reference=None):
     except (KeyError, ValueError, TypeError):
         stale = True
     evaluated = []
+    hoje = snapshot['forecast']['today'].get('date', snapshot['generated_at'][:10])
     for candidate in candidates(snapshot, reference):
         parts = candidate['parts']
         previous = next((h for h in reversed(history) if h.get('format') == candidate['format']
@@ -135,14 +140,21 @@ def evaluate(snapshot, history=None, reference=None):
         if confidence < 35: veto.append('confianca_abaixo_de_35')
         if confidence < 50 and candidate['classification'].startswith('reel'):
             candidate['classification'] = 'story'
-        if previous and previous.get('facts') == candidate['facts']:
+        # A base diaria (Bira de manha, Bia a noite) sai TODO dia: numeros
+        # iguais aos de um dia anterior nao sao "sem mudanca", sao outro dia.
+        # So veta se a mesma base com os mesmos numeros ja saiu HOJE.
+        mesmo_dia = str((previous or {}).get('published_at', ''))[:10] == hoje
+        if previous and previous.get('facts') == candidate['facts'] and (
+                candidate['format'] not in BASE_DIARIA or mesmo_dia):
             veto.append('sem_mudanca_material')
         for old in history:
             try:
                 recent = reference - stamp(old['published_at']) < timedelta(days=7)
             except (KeyError, ValueError):
                 continue
-            if recent and old.get('hook_key') == candidate['hook_key']:
+            if (recent and old.get('hook_key') == candidate['hook_key']
+                    and (candidate['format'] not in BASE_DIARIA
+                         or str(old.get('published_at', ''))[:10] == hoje)):
                 veto.append('gancho_repetido_em_7_dias')
             if old.get('dedupe_key') == candidate['dedupe_key']:
                 veto.append('duplicata')
