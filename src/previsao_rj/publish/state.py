@@ -29,7 +29,7 @@ from typing import Any
 
 from ..collectors.base import iso, now
 from ..editorial.engine import stamp
-from ..editorial.turnos import do_turno
+from ..editorial.turnos import do_turno, publicavel_no_turno
 
 CLAIMABLE = {"ready"}
 FINAL = {"published"}
@@ -83,13 +83,13 @@ def next_ready(path: str | Path, reference: datetime | None = None,
     """Melhor candidato publicavel: `ready`, nao vencido, maior total.
 
     Empate resolvido pelo dedupe_key, para que duas execucoes com o mesmo
-    estado escolham sempre o mesmo item. Com `turno`, so pautas daquele turno
-    (manha = previsao do dia; noite = previsao de amanha).
+    estado escolham sempre o mesmo item. Com `turno`, so o que o Reel diario
+    daquele turno pode publicar (manha = previsao de hoje; noite = de amanha).
     """
     reference = reference or now()
     ready = [i for i in load(path)
              if i.get("status") in CLAIMABLE and not _expired(i, reference)
-             and do_turno(i, turno)]
+             and publicavel_no_turno(i, turno)]
     if not ready:
         return None
     return sorted(ready, key=lambda c: (-c.get("total", 0), c.get("dedupe_key", "")))[0]
