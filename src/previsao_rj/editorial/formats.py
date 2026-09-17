@@ -130,10 +130,15 @@ def batida_resumo(locations, titulo, quando=''):
     return batida(fala_resumo(cidades, quando), 'resumo', cidades=cidades, titulo=titulo)
 
 
-def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None):
+def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None, topic=None):
+    """`topic` vem da pauta escolhida: sem ele, `chove_onde` podia desenhar
+    'chuva' enquanto a legenda (que segue a pauta) falava de 'temperatura' —
+    a fila usa histórico na nota e o render não."""
     options = [c for c in evaluate(snapshot, history, reference) if c['format'] == format and c['status'] == 'ready']
+    if topic:
+        options = [c for c in options if c['topic'] == topic]
     if not options:
-        raise ValueError(f'Formato {format} sem candidato válido e atualizado')
+        raise ValueError(f'Formato {format} (tópico {topic or "qualquer"}) sem candidato válido e atualizado')
     candidate = options[0]
     locs = [e for e in snapshot['forecast']['today']['locations'] if e['id'] in candidate['location_ids']]
     if format == 'rio_antes_de_sair':
