@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -126,8 +127,11 @@ def test_workflow_da_noite_tem_travas_e_horario_da_tarde():
     assert noite['jobs']['reel']['if'] == "needs.trava.outputs.pular != 'sim'"
     assert noite['concurrency'] == carregar(MANHA)['concurrency']
     horas = {int(c['cron'].split()[1]) for c in noite[True]['schedule']}
-    # 16h30-17h30 de Brasília (UTC-3): antes das 18h, depois do meio-dia.
-    assert len(noite[True]['schedule']) >= 2 and min(horas) >= 18 and max(horas) < 21
+    # Reservas entre 12h e 15h de Brasília (UTC-3): depois do meio-dia e com
+    # folga de horas antes do preparo das 17:20.
+    assert len(noite[True]['schedule']) >= 2 and min(horas) >= 15 and max(horas) <= 18
+    assert noite['env']['ALVO'] == '18:00'
+    assert noite[True]['repository_dispatch']['types'] == ['reel_noite']
     texto = NOITE.read_text(encoding='utf-8')
     assert '--turno noite' in texto and '--exigir-inedito-hoje' in texto
     assert "i.get('format') == 'amanha_no_rio'" in texto
@@ -137,3 +141,85 @@ def test_workflow_da_manha_escolhe_so_pauta_do_dia():
     texto = MANHA.read_text(encoding='utf-8')
     assert '--turno manha' in texto
     assert "i.get('format') != 'amanha_no_rio'" in texto
+
+
+# --- 17/09/2026: preparar antes, publicar na hora -------------------------
+
+def test_manha_nao_publica_fim_de_semana(tmp_path):
+    """Numa quinta, a manhã escolheu `fim_de_semana` (maior nota). Manhã é
+    previsão de HOJE."""
+    fila = _fila(tmp_path, _item('fds', 'fim_de_semana', 30),
+                 _item('hoje', 'rio_antes_de_sair', 12),
+                 _item('amanha', 'amanha_no_rio', 40))
+    assert state.next_ready(fila, turno='manha')['dedupe_key'] == 'hoje'
+    assert state.next_ready(fila, turno='noite')['dedupe_key'] == 'amanha'
+    so_fds = _fila(tmp_path, _item('fds', 'fim_de_semana', 30))
+    assert state.next_ready(so_fds, turno='manha') is None
+    assert state.next_ready(so_fds, turno='noite') is None
+
+
+def test_base_diaria_nao_e_vetada_por_numeros_de_outro_dia(snapshot):
+    """Máximas, chuva e vento iguais aos de ontem não podem tirar o Reel do ar."""
+    hoje = snapshot['forecast']['today']['date']
+    for formato in ('rio_antes_de_sair', 'amanha_no_rio'):
+        base = next(c for c in evaluate(snapshot) if c['format'] == formato)
+        # Mesmos fatos e mesmo gancho; a chave de ontem tem a data de ontem.
+        gerado = datetime.fromisoformat(snapshot['generated_at'])
+        ontem = dict(base, status='published', dedupe_key='chave-de-ontem',
+                     published_at=(gerado - timedelta(days=1)).isoformat())
+        repetido = next(c for c in evaluate(snapshot, [ontem], reference=gerado)
+                        if c['format'] == formato)
+        assert repetido['status'] == 'ready', (formato, repetido['vetoes'])
+        # No MESMO dia, continua vetado.
+        ontem['published_at'] = gerado.replace(hour=0, minute=1).isoformat()
+        if ontem['published_at'][:10] == hoje:
+            mesmo = next(c for c in evaluate(snapshot, [ontem], reference=gerado)
+                         if c['format'] == formato)
+            assert 'duplicata' in mesmo['vetoes'] or 'sem_mudanca_material' in mesmo['vetoes']
+
+
+def test_render_desenha_o_topico_da_pauta(snapshot):
+    pautas = [c for c in evaluate(snapshot) if c['format'] == 'chove_onde' and c['status'] == 'ready']
+    for pauta in pautas:
+        assert prepare(snapshot, 'chove_onde', topic=pauta['topic'])['candidate']['topic'] == pauta['topic']
+    with pytest.raises(ValueError):
+        prepare(snapshot, 'chove_onde', topic='topico_inexistente')
+
+
+def test_hora_do_roteiro_e_a_hora_de_ir_ao_ar(monkeypatch):
+    from src.previsao_rj.editorial import script
+    monkeypatch.setenv('PREVISAO_RJ_HORA_ALVO', '6')
+    assert script.hora_agora() >= 6
+    monkeypatch.setenv('PREVISAO_RJ_HORA_ALVO', '23')
+    assert script.hora_agora() == 23
+
+
+def test_relogio_do_turno():
+    from scripts.aguardar_horario import BRT, dentro_do_prazo, segundos_de_espera
+    cedo = datetime(2026, 9, 18, 0, 47, tzinfo=BRT)
+    assert segundos_de_espera('06:00', 40, cedo) == ((5 * 60 + 20) - 47) * 60
+    assert segundos_de_espera('06:00', 0, datetime(2026, 9, 18, 5, 26, tzinfo=BRT)) == 34 * 60
+    assert segundos_de_espera('06:00', 40, datetime(2026, 9, 18, 9, 45, tzinfo=BRT)) == 0
+    assert dentro_do_prazo('10:00', datetime(2026, 9, 18, 9, 59, tzinfo=BRT))
+    assert not dentro_do_prazo('10:00', datetime(2026, 9, 18, 10, 1, tzinfo=BRT))
+
+
+@pytest.mark.parametrize('caminho,alvo', [(MANHA, '06:00'), (NOITE, '18:00')])
+def test_workflow_prepara_antes_e_publica_na_hora(caminho, alvo):
+    wf = carregar(caminho)
+    assert wf['env']['ALVO'] == alvo and int(wf['env']['PREPARO_MIN']) >= 20
+    passos = [s.get('name') or s.get('uses') for s in wf['jobs']['reel']['steps']]
+    preparo = passos.index('Aguardar a hora de preparar (ALVO - PREPARO_MIN)')
+    publicar = passos.index('Aguardar o horário de publicar (ALVO)')
+    assert preparo < passos.index('Coletar a previsão atual')
+    assert passos.index('Render com a pauta escolhida') < publicar
+    assert passos.index('QA') < publicar < passos.index('Publicar o Reel do dia')
+    assert publicar < passos.index('Hospedar MP4 em Release temporário')
+    assert wf['jobs']['reel']['timeout-minutes'] <= 355
+    assert wf['jobs']['reel']['env']['PREVISAO_RJ_HORA_ALVO'] == str(int(alvo[:2]))
+    texto = caminho.read_text(encoding='utf-8')
+    assert '--topico "${{ steps.pauta.outputs.topico }}"' in texto
+    assert "os.environ['PRAZO']" in texto
+    for passo in wf['jobs']['trava']['steps'] + wf['jobs']['reel']['steps']:
+        if passo.get('uses', '').startswith('actions/checkout'):
+            assert passo['with']['ref'] == '${{ github.ref_name }}'
