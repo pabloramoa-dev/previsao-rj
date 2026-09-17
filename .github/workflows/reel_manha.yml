@@ -1,37 +1,42 @@
 name: Reel da manhã — Previsão RJ
 
-# Publicação diária da MANHÃ (6h): Bira do Tempo com a previsão do dia.
+# Publicação diária da MANHÃ (6h): Bira do Tempo com a previsão DE HOJE.
 # O Reel da noite (18h, Bia com a previsão de amanhã) é o `reel_noite.yml`.
 # Cada turno tem a sua trava: o da manhã só conta publicação da manhã.
 #
-# Por que TRÊS horários de cron e não um: o agendamento do GitHub atrasa. Em
-# setembro/2026 o histórico agendado para 06:00 rodou às 12:17, e o
-# agendamento do primeiro Reel (07:07 de 13/09) simplesmente não disparou. Com
-# uma tentativa só, um atraso desses publica a previsão da manhã à tarde — ou
-# não publica.
+# COMO FUNCIONA O HORÁRIO (17/09/2026)
 #
-# Então são três tentativas antes das 6h e uma trava de idempotência: o job
-# `trava` lê a fila versionada e, se já existe publicação com a data local de
-# hoje, o Reel nem começa. A primeira tentativa que realmente disparar publica;
-# as outras saem em segundos, sem instalar ffmpeg nem coletar nada.
+#   05:15  gatilho externo (cron-job.org -> repository_dispatch) inicia o job
+#   05:20  PREPARO: coleta a previsão atual, escolhe a pauta, renderiza,
+#          faz o QA e guarda o vídeo (artifact) — ~6 min
+#   06:00  ALVO: publica o vídeo que já está pronto
+#   10:00  PRAZO: disparo automático depois disso não publica mais
 #
-# Cinto e suspensório, em três camadas: o job `trava`, o
-# `escolher_pauta --exigir-inedito-hoje` (que relê a fila já atualizada) e o
-# `publish.cli`, que recusa legenda equivalente já publicada. Mesmo que o
-# commit da fila falhe, não sai Reel repetido.
+# O job espera sozinho entre os marcos (scripts/aguardar_horario.py). Por isso
+# pode ser disparado cedo: quem chega antes espera, quem chega atrasado segue
+# direto. Disparo manual (botão "Run workflow") não espera nada.
+#
+# Por que gatilho externo: o `schedule` do GitHub atrasa ou descarta. Em
+# 16/09/2026 os crons das 04:30-05:30 dispararam às 09:45; em 17/09 não
+# dispararam. Os crons abaixo ficam como RESERVA, de madrugada/início da tarde,
+# para que mesmo um atraso de horas ainda chegue antes do preparo.
+#
+# Contra Reel repetido, três camadas: o job `trava` (fila versionada), o
+# `escolher_pauta --exigir-inedito-hoje` e o `publish.cli`, que recusa legenda
+# já publicada. Todos os disparos caem no mesmo grupo de concorrência e rodam
+# um de cada vez; o checkout sempre pega a ponta da main.
 #
 # Chave geral: a variable AUTOMATION_ENABLED. Sem ela igual a 'true', nada
 # roda. É o rollback de um clique, sem editar arquivo.
 
 on:
   schedule:
-    - cron: "30 7 * * *"   # 04:30 America/Sao_Paulo
-    - cron: "0 8 * * *"    # 05:00 America/Sao_Paulo
-    - cron: "30 8 * * *"   # 05:30 America/Sao_Paulo
-  # GATILHO PRINCIPAL (desde 17/09/2026): cron-job.org às 05:40 (America/Sao_Paulo)
-  # chama POST /repos/:owner/:repo/dispatches {"event_type":"reel_manha"} com um
-  # token fine-grained só deste repo (Contents: write). Os três crons acima
-  # ficam como reserva: em 17/09 o GitHub descartou os três.
+    - cron: "47 3 * * *"    # 00:47 de Brasília (reserva)
+    - cron: "47 4 * * *"    # 01:47 de Brasília (reserva)
+    - cron: "47 5 * * *"    # 02:47 de Brasília (reserva)
+  # GATILHO PRINCIPAL: cron-job.org às 05:15 (America/Sao_Paulo) chama
+  # POST /repos/:owner/:repo/dispatches {"event_type":"reel_manha"} com um
+  # token fine-grained só deste repo (Contents: write). Ver docs/HORARIO_DOS_REELS.md.
   repository_dispatch:
     types: [reel_manha]
   workflow_dispatch:
@@ -47,6 +52,12 @@ on:
 
 permissions:
   contents: write
+
+# Marcos do turno, no horário de Brasília (ver cabeçalho).
+env:
+  ALVO: "06:00"
+  PREPARO_MIN: "40"
+  PRAZO: "10:00"
 
 # Mesmo grupo do publicar_manual.yml: nunca dois publicadores ao mesmo tempo.
 concurrency:
@@ -102,15 +113,29 @@ jobs:
                 and str(i.get('published_at', ''))[:10] == hoje
                 and i.get('format') != 'amanha_no_rio']
 
-          pular = 'sim' if (ja and not ignorar) else 'nao'
-          print(f'hoje={hoje} pular={pular} publicar={publicar} '
-                f'publicacoes_hoje={len(ja)}')
+          # Disparo automático fora do prazo não publica: a previsão do turno
+          # já perdeu o sentido. O disparo manual decide por conta própria.
+          agora = datetime.datetime.now(
+              datetime.timezone(datetime.timedelta(hours=-3)))
+          hh, mm = (int(x) for x in os.environ['PRAZO'].split(':'))
+          atrasado = not manual and agora > agora.replace(
+              hour=hh, minute=mm, second=0, microsecond=0)
+
+          pular = 'sim' if ((ja and not ignorar) or atrasado) else 'nao'
+          print(f'hoje={hoje} agora={agora:%H:%M} pular={pular} '
+                f'publicar={publicar} publicacoes_hoje={len(ja)} '
+                f'fora_do_prazo={atrasado}')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as saida:
               saida.write(f'pular={pular}\n')
               saida.write(f'publicar={str(publicar).lower()}\n')
 
           resumo = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
-          if pular == 'sim':
+          if atrasado and not ja:
+              resumo.write_text(
+                  f'### Disparo às {agora:%H:%M}, depois do prazo ({os.environ["PRAZO"]})\n\n'
+                  'Nada foi preparado nem publicado. Para publicar mesmo assim, '
+                  'use o botão "Run workflow".\n', encoding='utf-8')
+          elif pular == 'sim':
               resumo.write_text(
                   f'### Reel de {hoje} já publicado\n\n'
                   f'- formato: `{ja[-1].get("format")}`\n'
@@ -123,8 +148,11 @@ jobs:
     needs: trava
     if: needs.trava.outputs.pular != 'sim'
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    # Até ~5 h de espera quando um cron de reserva dispara na hora.
+    timeout-minutes: 350
     env:
+      # O roteiro fala da hora em que o Reel vai ao ar, não da hora do render.
+      PREVISAO_RJ_HORA_ALVO: "6"
       # Visual do Reel: colagem de papel (vox) por padrão. Para voltar ao
       # visual anterior sem editar arquivo, crie a variable
       # PREVISAO_RJ_ESTILO=classico em Settings > Variables.
@@ -156,7 +184,11 @@ jobs:
           python scripts/isolation_guard.py
           python -m pytest -q
 
-      - name: Coletar dados ao vivo
+      - name: Aguardar a hora de preparar (ALVO - PREPARO_MIN)
+        if: github.event_name != 'workflow_dispatch'
+        run: python -m scripts.aguardar_horario preparar --alvo "$ALVO" --antes "$PREPARO_MIN"
+
+      - name: Coletar a previsão atual
         run: python -m scripts.collect_live output/snapshot.json
 
       - name: Avaliar pautas e atualizar a fila
@@ -190,6 +222,7 @@ jobs:
             --snapshot output/snapshot.json \
             --personagem "${{ steps.pauta.outputs.personagem }}" \
             --format "${{ steps.pauta.outputs.formato }}" \
+            --topico "${{ steps.pauta.outputs.topico }}" \
             --out output/REEL.mp4
 
       - name: Legenda da mesma pauta
@@ -227,6 +260,11 @@ jobs:
           retention-days: 14
 
       # ---------------------------------------------------------- publicação
+
+      # O vídeo já está pronto e guardado no artifact: aqui só se espera a hora.
+      - name: Aguardar o horário de publicar (ALVO)
+        if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' && github.event_name != 'workflow_dispatch' }}
+        run: python -m scripts.aguardar_horario publicar --alvo "$ALVO"
 
       - name: Verificar Meta e conta de destino
         if: ${{ steps.pauta.outputs.seguir == 'sim' && needs.trava.outputs.publicar == 'true' }}
