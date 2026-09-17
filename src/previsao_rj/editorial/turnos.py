@@ -15,6 +15,15 @@ TURNOS = ('manha', 'noite')
 # Formatos que falam do dia SEGUINTE e, por isso, saem no turno da noite.
 FORMATOS_NOITE = frozenset({'amanha_no_rio'})
 
+# O que o Reel da MANHÃ pode publicar: só pauta sobre o DIA DE HOJE. Em
+# 17/09/2026 (quinta) a manhã escolheu `fim_de_semana` porque era a pauta de
+# maior nota — e o combinado é Bira com a previsão do dia. `fim_de_semana`
+# continua sendo avaliado pelo motor, mas nenhum dos dois turnos o publica.
+FORMATOS_MANHA = frozenset({'rio_antes_de_sair', 'chove_onde', 'vai_dar_praia',
+                            'vai_ao_jogo'})
+
+PUBLICAVEIS = {'manha': FORMATOS_MANHA, 'noite': FORMATOS_NOITE}
+
 APRESENTADOR = {'manha': 'bira', 'noite': 'bia'}
 
 
@@ -33,3 +42,17 @@ def do_turno(item: dict, turno: str | None) -> bool:
     if turno not in TURNOS:
         raise ValueError(f'turno desconhecido: {turno!r}')
     return turno_do_formato(item.get('format')) == turno
+
+
+def publicavel_no_turno(item: dict, turno: str | None) -> bool:
+    """True se o Reel diário daquele turno pode publicar o item.
+
+    Diferente de `do_turno`, que diz a QUAL turno uma publicação pertence (é o
+    que a trava de "já publicado hoje" usa): aqui é a lista fechada do que cada
+    turno tem licença para escolher — manhã só fala de hoje, noite só de amanhã.
+    """
+    if turno is None:
+        return True
+    if turno not in TURNOS:
+        raise ValueError(f'turno desconhecido: {turno!r}')
+    return item.get('format') in PUBLICAVEIS[turno]
