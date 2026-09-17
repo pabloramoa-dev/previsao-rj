@@ -128,6 +128,7 @@ jobs:
             --snapshot output/snapshot.json \
             --personagem "$P" \
             --format "${{ steps.pauta.outputs.formato }}" \
+            --topico "${{ steps.pauta.outputs.topico }}" \
             --out output/REEL.mp4
 
       # ------------------------------------------------------ comum aos dois
