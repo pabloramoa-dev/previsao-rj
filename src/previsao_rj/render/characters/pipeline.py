@@ -70,13 +70,13 @@ def run(cmd, **kwargs):
     subprocess.run([str(x) for x in cmd], check=True, cwd=ROOT, **kwargs)
 
 
-def render(character, destination, snapshot=None, format="rio_antes_de_sair"):
+def render(character, destination, snapshot=None, format="rio_antes_de_sair", topic=None):
     preset = PRESETS[character]
     out = Path(destination).resolve()
     work = out.parent / ('work_' + character)
     work.mkdir(parents=True, exist_ok=True)
     from ...editorial.formats import prepare
-    prepared = prepare(snapshot, format) if snapshot is not None else None
+    prepared = prepare(snapshot, format, topic=topic) if snapshot is not None else None
     beats = prepared["beats"] if prepared else demo_beats(character)
     raw, narration = work / 'raw.wav', work / 'narracao.wav'
 
@@ -164,12 +164,14 @@ def main():
     parser.add_argument('--out', required=True)
     from ...editorial.formats import TITLES
     parser.add_argument('--format', choices=TITLES, default='rio_antes_de_sair')
+    parser.add_argument('--topico', default=None,
+                        help='tópico da pauta (output/pauta.json); vazio = o de maior nota')
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--demo', action='store_true')
     source.add_argument('--snapshot')
     args = parser.parse_args()
     snapshot = json.loads(Path(args.snapshot).read_text()) if args.snapshot else None
-    render(args.personagem, args.out, snapshot, args.format)
+    render(args.personagem, args.out, snapshot, args.format, args.topico or None)
 
 
 if __name__ == '__main__':
