@@ -1250,11 +1250,11 @@
     "character": "bia",
     "hook_key": "4544f2841a18cafd832d",
     "dedupe_key": "f9c139481e078db3665350bda53e115008ad8f463723b14a7e722e6b1a0820ad",
-    "created_at": "2026-09-17T09:38:37.989577-03:00",
-    "expires_at": "2026-09-17T11:38:37-03:00",
+    "created_at": "2026-09-17T10:17:59.666644-03:00",
+    "expires_at": "2026-09-17T12:17:59-03:00",
     "vetoes": [],
     "status": "ready",
-    "confidence": 59.5,
+    "confidence": 60.0,
     "language": "forecast"
   },
   {
@@ -1296,13 +1296,13 @@
     "character": "bira",
     "hook_key": "52a4afd1309c41fdf3a2",
     "dedupe_key": "91e2acf46f564ef367c1ca6818406457fc41145e01abe9039e9a42e8a9c0ff88",
-    "created_at": "2026-09-17T09:38:37.989577-03:00",
-    "expires_at": "2026-09-17T11:38:37-03:00",
+    "created_at": "2026-09-17T10:17:59.666644-03:00",
+    "expires_at": "2026-09-17T12:17:59-03:00",
     "vetoes": [
       "balneabilidade_oficial_indisponivel"
     ],
     "status": "blocked",
-    "confidence": 59.5,
+    "confidence": 60.0,
     "language": "forecast"
   },
   {
@@ -1560,11 +1560,11 @@
     "character": "bira",
     "hook_key": "b472b43446016c261290",
     "dedupe_key": "847ad14d4778a9a54a2d81bd87c1288c07c0569535becfe8867fdf5d9cc98e92",
-    "created_at": "2026-09-17T09:38:37.989577-03:00",
-    "expires_at": "2026-09-17T11:38:37-03:00",
+    "created_at": "2026-09-17T10:17:59.666644-03:00",
+    "expires_at": "2026-09-17T12:17:59-03:00",
     "vetoes": [],
     "status": "ready",
-    "confidence": 59.5,
+    "confidence": 60.0,
     "language": "forecast"
   }
 ]
