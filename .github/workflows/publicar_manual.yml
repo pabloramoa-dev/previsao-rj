@@ -50,7 +50,13 @@ jobs:
       # Colagem de papel (vox) por padrão; variable PREVISAO_RJ_ESTILO=classico volta.
       PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
     steps:
+      # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
+      # atrasado que ficou esperando na fila de concorrência carregaria a fila
+      # editorial antiga (sem o Reel que acabou de sair) e as três travas
+      # deixariam passar um Reel repetido.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
 
