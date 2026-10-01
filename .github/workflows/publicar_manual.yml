@@ -49,6 +49,7 @@ jobs:
       PUBLICAR: ${{ inputs.publicar }}
       # Colagem de papel (vox) por padrão; variable PREVISAO_RJ_ESTILO=classico volta.
       PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
+      PREVISAO_RJ_MOTOR: ${{ vars.PREVISAO_RJ_MOTOR || 'hyperframes' }}
     steps:
       # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
       # atrasado que ficou esperando na fila de concorrência carregaria a fila
@@ -57,6 +58,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+      - name: Preparar HyperFrames
+        uses: ./.github/actions/setup-hyperframes
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
 
@@ -95,7 +98,7 @@ jobs:
         run: |
           P="${{ inputs.personagem }}"
           if [ "$P" = "auto" ]; then P=bira; fi
-          python -m src.previsao_rj.render.characters.pipeline --demo --personagem "$P" --out output/REEL.mp4
+          python hyperframes/gerar_hf.py --demo --personagem "$P" --out output/REEL.mp4
 
       # ---------------------------------------------------------------- live
 
@@ -124,7 +127,7 @@ jobs:
         run: |
           P="${{ inputs.personagem }}"
           if [ "$P" = "auto" ]; then P="${{ steps.pauta.outputs.personagem }}"; fi
-          python -m src.previsao_rj.render.characters.pipeline \
+          python hyperframes/gerar_hf.py \
             --snapshot output/snapshot.json \
             --personagem "$P" \
             --format "${{ steps.pauta.outputs.formato }}" \

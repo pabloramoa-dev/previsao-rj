@@ -157,6 +157,7 @@ jobs:
       # visual anterior sem editar arquivo, crie a variable
       # PREVISAO_RJ_ESTILO=classico em Settings > Variables.
       PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
+      PREVISAO_RJ_MOTOR: ${{ vars.PREVISAO_RJ_MOTOR || 'hyperframes' }}
     steps:
       # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
       # atrasado que ficou esperando na fila de concorrência carregaria a fila
@@ -220,7 +221,9 @@ jobs:
       - name: Render com a pauta escolhida
         if: steps.pauta.outputs.seguir == 'sim'
         run: |
-          python -m src.previsao_rj.render.characters.pipeline \
+          # Estúdio HyperFrames (Reel inteiro em HTML). Reserva sem editar
+          # arquivo: variável PREVISAO_RJ_MOTOR=manim em Settings > Variables.
+          python hyperframes/gerar_hf.py \
             --snapshot output/snapshot.json \
             --personagem "${{ steps.pauta.outputs.personagem }}" \
             --format "${{ steps.pauta.outputs.formato }}" \

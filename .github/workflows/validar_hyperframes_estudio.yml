@@ -1,0 +1,57 @@
+name: Validar estúdio HyperFrames — Previsão RJ
+# Render real de Bira (06h) e Bia (18h) com o estúdio HyperFrames, com a coleta
+# guardada mais recente. Nunca publica: só deixa os MP4 no artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'hyperframes/**'
+      - '.github/workflows/validar_hyperframes_estudio.yml'
+permissions:
+  contents: read
+concurrency:
+  group: validar-hf-estudio-rj-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        personagem: [bira, bia]
+    env:
+      OMP_NUM_THREADS: '2'
+      HYPERFRAMES_NO_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/previsao_rj_kokoro
+          key: rj-kokoro-v1.0
+      - name: Dependências
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng
+          pip install -r requirements/test.txt numpy scipy kokoro-onnx soundfile
+      - name: Preparar HyperFrames
+        uses: ./.github/actions/setup-hyperframes
+      - name: Isolamento e testes do estúdio
+        run: |
+          python scripts/isolation_guard.py
+          python -m pytest -q tests/test_hyperframes_estudio.py
+      - name: Render de demonstração — nunca publica
+        run: python hyperframes/gerar_hf.py --demo --personagem ${{ matrix.personagem }} --out output/estudio/${{ matrix.personagem }}.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: estudio-hyperframes-${{ matrix.personagem }}
+          path: |
+            output/estudio/
+            hyperframes/build/pacote.json
+          retention-days: 14
+          if-no-files-found: error
