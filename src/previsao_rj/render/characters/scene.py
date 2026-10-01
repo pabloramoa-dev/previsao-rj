@@ -237,7 +237,9 @@ class Piloto(MovingCameraScene):
             if jw:
                 P.apontar(v, jw)
         extras = P.vestir(self, v, CENARIO, janelas_frio=janelas('tremer') or None, janelas_calor=janelas('abanar') or None, janelas_beber=janelas('beber') or None, com_guarda_chuva=COM_GUARDA_CHUVA)
-        self.add((VX.marca() if VOX else P.marca_dagua()).move_to([0, Y_MARCA, 0]))
+        hf = os.environ.get('PREVISAO_RJ_HYPERFRAMES') == '1'
+        if not hf:
+            self.add((VX.marca() if VOX else P.marca_dagua()).move_to([0, Y_MARCA, 0]))
         # Resumo, gancho e CTA ocupam o centro da tela. Sem tirar o apresentador,
         # o cartaz aparece em cima do rosto dele — que foi o defeito visto no
         # primeiro ensaio. Janelas vizinhas sao fundidas para ele nao voltar ao
@@ -305,7 +307,8 @@ class Piloto(MovingCameraScene):
                                                  larg=P.SEGURA - 0.6)
             else:
                 legs += P.legenda_karaoke(b['legenda'], ini, fim, y=Y_LEGENDA, fs=42)
-        self.add(P.trilha_temporal(legs, pop=0.1))
+        if not hf:
+            self.add(P.trilha_temporal(legs, pop=0.1))
         jn = [(SEGS[i]['ini'], SEGS[i]['fim']) for i, b in enumerate(BATIDAS) if i < len(SEGS) and (b.get('dados') or {}).get('nevoa')]
         if jn and CENARIO != 'frio':
             P.nevoa(self, janelas=jn)
