@@ -40,5 +40,7 @@ beats = [
     {'tipo':'gancho','fala':'Maxima prevista de vinte e oito graus.','legenda':'28 graus previstos'}]
 segments=[{'ini':0.,'fim':.9},{'ini':1.,'fim':2.}]
 final=out/'rj-boletim.mp4'
-render(source,beats,segments,character='bira',date='01/10',hour='06:00',root=Path.cwd())
+import shutil
+shutil.copy2(source, final)
+render(final,beats,segments,character='bira',date='01/10',hour='06:00',root=Path.cwd())
 run(['ffmpeg','-y','-v','error','-ss','.8','-i',final,'-frames:v','1',out/'rj-boletim.png'])
