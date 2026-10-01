@@ -17,9 +17,9 @@ BANNED = [
     "reels/previsao" + "_lib",
 ]
 
-ROOTS = [Path("src"), Path(".github"), Path("config"), Path("scripts"), Path("tests")]
+ROOTS = [Path("src"), Path(".github"), Path("config"), Path("scripts"), Path("tests"), Path("hyperframes")]
 SELF_EXEMPT = {Path("scripts/isolation_guard.py"), Path("tests/test_isolation.py")}
-SKIP_SUFFIXES = {".pyc", ".mp4", ".wav", ".png", ".jpg"}
+SKIP_SUFFIXES = {".pyc", ".mp4", ".wav", ".png", ".jpg", ".woff2", ".ttf", ".js"}
 
 
 def scan() -> list[tuple[str, str]]:
