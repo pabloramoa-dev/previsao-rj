@@ -31,7 +31,7 @@ for style in ('guru','rj'):
     correlation=sum(x*y for x,y in zip(a,b))/math.sqrt(sum(x*x for x in a)*sum(y*y for y in b))
     assert correlation > .98, ('Audio changed',style,correlation)
     print(style, 'audio correlation:',round(correlation,5))
-    run(['ffmpeg','-y','-v','error','-ss','.8','-i',final,'-frames:v','1',out/(style+'.png')])
+    run(['ffmpeg','-y','-v','error','-ss','0.8','-i',final,'-frames:v','1',out/(style+'.png')])
 
 # Native Rio bulletin: same news visual language as the approved reference.
 from video.boletim import render
@@ -43,4 +43,4 @@ final=out/'rj-boletim.mp4'
 import shutil
 shutil.copy2(source, final)
 render(final,beats,segments,character='bira',date='01/10',hour='06:00',root=Path.cwd())
-run(['ffmpeg','-y','-v','error','-ss','.8','-i',final,'-frames:v','1',out/'rj-boletim.png'])
+run(['ffmpeg','-y','-v','error','-ss','0.8','-i',final,'-frames:v','1',out/'rj-boletim.png'])
