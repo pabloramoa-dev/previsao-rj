@@ -41,7 +41,7 @@ def compose(work, duration, width, height, cuts, style, *, beats, segments, char
                 spans.append(f'<span id="{ident}">{escape(word)}</span>')
                 t=a+length*j/len(page)
                 animations.append(f'tl.set("#{ident}",{{backgroundColor:"#d63a2f",scale:1.06}},{t});')
-            captions.append(f'<div class="clip caption" data-start="{a}" data-duration="{length}" data-track-index="4">{" ".join(spans)}</div>')
+            captions.append(f'<div id="caption{i}_{k}" class="clip caption" data-start="{a}" data-duration="{length}" data-track-index="4">{" ".join(spans)}</div>')
     for k,t in enumerate(cuts):
         effect = k % 3
         if effect == 0:
