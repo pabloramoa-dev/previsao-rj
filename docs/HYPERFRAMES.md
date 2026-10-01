@@ -34,3 +34,28 @@ grao, vinheta, trilha discreta e whooshes. A camada Manim fornece os personagens
 lip sync, cenarios do Rio e paineis meteorologicos. Marca e legendas duplicadas
 sao desligadas apenas durante a geracao da camada destinada ao HyperFrames.
 O conteudo editorial e as vozes originais do RJ continuam sendo usados.
+
+## Estúdio completo (padrão desde 01/10/2026)
+
+O Reel diário deixou de passar pelo Manim: a imagem inteira agora é HTML + GSAP
+renderizado pelo HyperFrames (`hyperframes/`), no mesmo molde do motor aprovado
+em 30/09/2026. Continuam iguais o roteiro e a pauta (`editorial/`), o corte de
+duração, as vozes Kokoro (Bira `pm_alex` 1.04 às 6h, Bia `pf_dora` 1.02 às 18h),
+o lip sync por amplitude, as cinco previsões obrigatórias, o QA, o preview 720p,
+a miniatura e o manifesto.
+
+- `hyperframes/gerar_hf.py` — narração, tempos, lip sync, trilha e `pacote.json`;
+  aceita os mesmos argumentos do pipeline Manim (`--snapshot/--demo`,
+  `--personagem`, `--format`, `--topico`, `--out`).
+- `hyperframes/compor.py` — Bira e Bia redesenhados em SVG animado (respiração,
+  piscada, sobrancelhas, braço apontando para o telão nas cenas de dado), telão
+  com Corcovado, Pão de Açúcar com bondinho, orla e calçadão pelo tempo do dia;
+  cenas abertura → número (count-up + headline-slam + carimbo do lugar) →
+  quadro split-flap das cinco regiões → alerta → frase → CTA; transições glitch,
+  whip-pan e flash; HUD, ticker, lower third, legenda karaokê, grão e vinheta.
+- `hyperframes/compositions/instagram-follow.html` — card "Seguir" do @previsaorj.
+
+Reversão sem editar arquivo: variável `PREVISAO_RJ_MOTOR=manim` em
+Settings > Variables volta ao pipeline Manim + camada de boletim descrita acima.
+Validação sem publicar: workflow "Validar estúdio HyperFrames — Previsão RJ"
+(render de Bira e Bia no artifact).
