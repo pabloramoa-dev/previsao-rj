@@ -120,7 +120,8 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair", to
                                    else 'AMANHÃ' if format == 'amanha_no_rio' else 'TEMPERATURAS')}
     (work / 'conteudo.json').write_text(json.dumps(content, ensure_ascii=False), encoding='utf-8')
     env = dict(os.environ, PREVISAO_RJ_TRAB=str(work),
-               PREVISAO_RJ_LIP_JSON=str(work / 'lip_full.json'), PYTHONPATH=str(ROOT))
+               PREVISAO_RJ_LIP_JSON=str(work / 'lip_full.json'), PYTHONPATH=str(ROOT),
+               PREVISAO_RJ_HYPERFRAMES='1')
     run([sys.executable, '-m', 'manim', '-qm', '--fps', '30', '--disable_caching',
          '--media_dir', work / 'media', Path(__file__).with_name('scene.py'), 'Piloto'], env=env)
     candidates = list((work / 'media' / 'videos').rglob('Piloto.mp4'))
@@ -139,18 +140,28 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair", to
              '-crf', '22', '-pix_fmt', 'yuv420p', '-r', '30',
              '-c:a', 'aac', '-b:a', '160k', '-ar', '48000',
              '-movflags', '+faststart', '-shortest', out])
-        run(['ffmpeg', '-y', '-v', 'error', '-i', out, '-vf', 'scale=720:1280',
-             '-c:v', 'libx264', '-profile:v', 'main', '-crf', '24', '-pix_fmt', 'yuv420p',
-             '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
-             out.with_name(out.stem + '_preview_720p.mp4')])
     else:
         run(['ffmpeg', '-y', '-v', 'error', '-i', candidates[0], '-i', narration,
              '-c:v', 'libx264', '-crf', '22', '-preset', 'medium', '-pix_fmt', 'yuv420p',
              '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-shortest', out])
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from video.boletim import render as render_boletim
+    now = datetime.now(ZoneInfo('America/Sao_Paulo'))
+    date_label = now.strftime('%d/%m')
+    target_hour = os.environ.get('PREVISAO_RJ_HORA_ALVO')
+    hour_label = f'{int(target_hour):02d}:00' if target_hour else now.strftime('%H:%M')
+    render_boletim(out, beats, segments, character=character, date=date_label,
+                   hour=hour_label, root=ROOT)
+    run(['ffmpeg', '-y', '-v', 'error', '-i', out, '-vf', 'scale=720:1280',
+         '-c:v', 'libx264', '-profile:v', 'main', '-crf', '24', '-pix_fmt', 'yuv420p',
+         '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
+         out.with_name(out.stem + '_preview_720p.mp4')])
     run([sys.executable, 'scripts/qa_video.py', out])
     run(['ffmpeg', '-y', '-v', 'error', '-ss', '2', '-i', out, '-frames:v', '1', out.with_suffix('.png')])
     manifest = {'character': character, 'preset': preset, 'filter': audio_filter,
                 'estilo': 'vox' if vox else 'classico',
+                'motor_video': 'hyperframes', 'hyperframes_version': '0.8.96',
                 'demo': snapshot is None, 'segments': segments,
                 'source_commit': '90e2ab5e040695821437f711fed25d2875161557',
                 'video': out.name, 'publication': False}

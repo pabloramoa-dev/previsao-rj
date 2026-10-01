@@ -1,0 +1,40 @@
+name: Validar integracao HyperFrames
+on:
+  push:
+    branches: ['integracao/hyperframes-restantes-20261001']
+  pull_request:
+    paths: ['video/**', '**/*hyperframes*', '.github/actions/setup-hyperframes/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HYPERFRAMES_NO_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/setup-hyperframes
+      - name: FFmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y ffmpeg
+      - name: Dependencias do teste de audio
+        run: pip install numpy soundfile
+      - name: Testes de integridade
+        run: python -m unittest discover -s tests -p test_hyperframes_finishing.py -v
+      - name: Regressao do Previsao RJ
+        run: |
+          pip install -r requirements/test.txt
+          python scripts/isolation_guard.py
+          python -m pytest -q
+      - name: Render real, sincronismo e decodificacao
+        run: python -m video.smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hyperframes-validation
+          path: output/hyperframes-validation/
+          retention-days: 7

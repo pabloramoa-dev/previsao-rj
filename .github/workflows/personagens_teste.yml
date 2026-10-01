@@ -41,6 +41,8 @@ jobs:
           done
           fc-cache -f
           pip install -r requirements/test.txt -r requirements/characters.txt
+      - name: Preparar HyperFrames
+        uses: ./.github/actions/setup-hyperframes
       - name: Testes e isolamento
         run: |
           python scripts/isolation_guard.py
