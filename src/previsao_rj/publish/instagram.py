@@ -32,9 +32,18 @@ def verify_destination() -> dict:
 
 def create_reel(video_url: str, caption: str) -> str:
     user, token, version, _ = _cfg()
-    r = requests.post(f"{base_url(version)}/{user}/media", data={
+    corpo = {
         "media_type":"REELS", "video_url":video_url, "caption":caption,
-        "share_to_feed":"true", "access_token":token}, timeout=30)
+        "share_to_feed":"true", "access_token":token}
+    # Capa da grade (o frame 0 do HyperFrames é só o cenário). Vem por variável
+    # de ambiente para não mudar a assinatura usada pelo cli e pelos testes.
+    capa_url = os.environ.get("PREVISAO_RJ_CAPA_URL", "").strip()
+    capa_ms = os.environ.get("PREVISAO_RJ_CAPA_MS", "").strip()
+    if capa_ms.isdigit() and int(capa_ms) > 0:
+        corpo["thumb_offset"] = capa_ms
+    if capa_url:
+        corpo["cover_url"] = capa_url
+    r = requests.post(f"{base_url(version)}/{user}/media", data=corpo, timeout=30)
     r.raise_for_status()
     return r.json()["id"]
 
