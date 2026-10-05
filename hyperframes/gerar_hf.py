@@ -239,6 +239,23 @@ def agrupar_cenas(batidas):
     return cenas
 
 
+def momento_da_capa(cenas, cortes, dur):
+    """Segundo do vídeo que vira a capa (miniatura da GRADE do perfil).
+
+    O frame 0 do HyperFrames é só o cenário (tudo entra animado depois), e a
+    grade ficou cheia de quadros sem temperatura. A capa passa a ser o QUADRO
+    das cinco regiões já montado (~2,2 s após o início da cena, sem passar do
+    corte seguinte). Sem quadro, usa a cena do número; sem ela, a abertura.
+    """
+    for tipo in ('quadro', 'numero', 'alerta'):
+        for j, c in enumerate(cenas):
+            if c['tipo'] != tipo:
+                continue
+            fim = cortes[j] - 0.15 if j < len(cortes) else dur - 0.2
+            return round(max(c['ini'] + 0.6, min(c['ini'] + 2.2, fim)), 2)
+    return round(min(1.5, dur / 2), 2)
+
+
 def data_extenso(iso):
     d = dt.date.fromisoformat(iso)
     return f'{DIAS[d.weekday()]}, {d.day} DE {MESES[d.month - 1]}'
@@ -336,6 +353,7 @@ def preparar(personagem, out, snapshot=None, formato='rio_antes_de_sair', topico
         'batidas': [dict(b, ini=tempos[i][0], fim=tempos[i][1]) for i, b in enumerate(batidas)],
         'cenas': cenas, 'cortes': cortes, 'transicoes': trans,
         'palavras': palavras,
+        'capa_s': momento_da_capa(cenas, cortes, dur),
         'boca': [[c['start'], c['value']] for c in cues],
     }
     (BUILD / 'pacote.json').write_text(json.dumps(pacote, ensure_ascii=False, indent=1), encoding='utf-8')
@@ -395,6 +413,15 @@ def entregar(personagem, out, pacote, batidas, segs, work):
          out.with_name(out.stem + '_preview_720p.mp4')])
     run([sys.executable, 'scripts/qa_video.py', out], cwd=RAIZ)
     run(['ffmpeg', '-y', '-v', 'error', '-ss', '2', '-i', out, '-frames:v', '1', out.with_suffix('.png')])
+    # Capa da grade: CAPA.jpg + capa_ms.txt na mesma pasta do MP4.
+    capa_s = pacote.get('capa_s') or 2
+    capa = out.with_name('CAPA.jpg')
+    run(['ffmpeg', '-y', '-v', 'error', '-ss', f'{capa_s:.2f}', '-i', out,
+         '-frames:v', '1', '-q:v', '2', capa])
+    if not capa.is_file() or capa.stat().st_size < 10_000:
+        raise RuntimeError('capa da grade não foi gerada')
+    out.with_name('capa_ms.txt').write_text(str(int(capa_s * 1000)))
+    print(f'capa da grade: {capa_s:.2f}s -> {capa}')
     manifest = {'character': personagem, 'preset': PRESETS[personagem], 'filter': FILTRO_VOZ,
                 'estilo': 'hyperframes-estudio', 'motor_video': 'hyperframes',
                 'hyperframes_version': VERSAO_HF, 'demo': pacote['demo'],
