@@ -197,8 +197,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="reel-${{ github.run_id }}"
-          gh release create "$TAG" output/REEL.mp4 --title "$TAG" --notes "Reel manual @previsaorj"
+          ARQS="output/REEL.mp4"
+          [ -f output/CAPA.jpg ] && ARQS="$ARQS output/CAPA.jpg"
+          gh release create "$TAG" $ARQS --title "$TAG" --notes "Reel manual @previsaorj"
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
+          if [ -f output/CAPA.jpg ]; then
+            echo "capa=https://github.com/${{ github.repository }}/releases/download/$TAG/CAPA.jpg" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publicar Reel controlado
         if: ${{ env.PUBLICAR == 'true' }}
@@ -207,7 +212,9 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
           EXPECTED_IG_USERNAME: previsaorj
+          PREVISAO_RJ_CAPA_URL: ${{ steps.media.outputs.capa }}
         run: |
+          export PREVISAO_RJ_CAPA_MS=$(cat output/capa_ms.txt 2>/dev/null || echo 0)
           python -m src.previsao_rj.publish.cli \
             --video-url "${{ steps.media.outputs.url }}" \
             --caption-file output/LEGENDA.txt \
