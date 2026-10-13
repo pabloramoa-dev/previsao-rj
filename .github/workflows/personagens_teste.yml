@@ -2,7 +2,7 @@ name: Teste visual e vozes — Previsão RJ
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feat/direcao-expressiva-rj]
     paths:
       - 'src/previsao_rj/render/characters/**'
       - 'requirements/characters.txt'
@@ -69,6 +69,7 @@ jobs:
             output/personagens/*.json
             output/personagens/work_*/segs.json
             output/personagens/work_*/conteudo.json
+            output/personagens/work_*/direcao.json
             output/stories/*.png
             output/cast/**/*.png
             data/editorial_queue.json
