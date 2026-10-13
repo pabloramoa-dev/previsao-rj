@@ -116,7 +116,7 @@ def apresentador_svg(nome):
     ombro_d = f'{X(.62):.1f} {Y(.18):.1f}'
     mx, my = X(0), Y(1.04)
     return f'''
-<svg id="ap-svg" viewBox="0 0 520 700" width="520" height="700" style="overflow:visible" xmlns="http://www.w3.org/2000/svg" data-ombro="{ombro_d}">
+<svg id="ap-svg" viewBox="0 0 520 700" width="520" height="700" style="overflow:visible" xmlns="http://www.w3.org/2000/svg" data-ombro="{ombro_d}" data-ombro-e="{X(-.62):.1f} {Y(.18):.1f}">
  <g id="ap-corpo">
   {cabelo_tras}
   {braco["E"]}
@@ -416,6 +416,7 @@ def compor(p):
                    "batidas": [{"i": i, "ini": bat[i]["ini"], "fim": bat[i]["fim"]} for i in c["batidas"]]}
                   for k, c in enumerate(cenas)],
         "batidas": [{"tipo": b["tipo"], "ini": b["ini"], "fim": b["fim"]} for b in bat],
+        "direcao": p.get("direcao", []),
         "boca": [[t, MOUTH.get(v, 0.3)] for t, v in p["boca"]],
         "palavras": [[w["s"], w["e"], w["w"]] for w in p["palavras"]],
         "tSiga": t_siga,
@@ -713,6 +714,7 @@ html, body {{ width: 1080px; height: 1920px; overflow: hidden; background: {NAVY
   // 10) APRESENTADOR — respiração, piscadas, sobrancelhas, aponta pro telão
   var svg = document.getElementById("ap-svg");
   var ombro = svg.getAttribute("data-ombro");
+  var ombroE = svg.getAttribute("data-ombro-e");
   tl.fromTo("#ap-wrap", {{ y: 700 }}, {{ y: 0, duration: 0.5, ease: "back.out(1.4)" }}, 0);
   var nResp = Math.max(1, Math.floor(D.dur / 1.6));
   tl.fromTo("#ap-corpo", {{ scaleY: 1, svgOrigin: "260 640" }}, {{ scaleY: 1.018, duration: 0.8, repeat: nResp * 2 - 1, yoyo: true, ease: "sine.inOut" }}, 0);
@@ -724,7 +726,20 @@ html, body {{ width: 1080px; height: 1920px; overflow: hidden; background: {NAVY
   D.batidas.forEach(function (b, k) {{
     tl.fromTo(["#ap-sobE", "#ap-sobD"], {{ y: 0 }}, {{ y: -14, duration: 0.12, yoyo: true, repeat: 1, ease: "power2.out" }}, b.ini);
     tl.fromTo("#ap-mov", {{ rotation: 0, svgOrigin: "260 640" }}, {{ rotation: (k % 2 ? 2.5 : -2.5), duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut" }}, b.ini);
+    var d = D.direcao[k];
+    if (d) {{
+      // O braço E está livre; o braço D continua apontando para o telão.
+      var graus = {{ repouso:0, explicar:-7, apontar:-12, enfatizar:-10, alertar:-16, acolher:-5, perguntar:-10 }};
+      var angulo = (graus[d.gesto] || 0) * d.energia;
+      var trecho = Math.min(.58, Math.max(.2, (b.fim-b.ini)*.28));
+      tl.fromTo("#ap-bracoE", {{rotation:0, svgOrigin:ombroE}},
+        {{rotation:angulo, duration:trecho, yoyo:true, repeat:1, ease:"sine.inOut", immediateRender:false}}, b.ini+.04);
+      var zoom = {{aproximar:1.06,aproximar_suave:1.035,abrir:1,estabilizar:1,manter:1.015}};
+      // Só o avatar é aproximado: números e cartões nunca sofrem zoom.
+      tl.to("#ap-wrap", {{scale:zoom[d.camera]||1, duration:.42, ease:"power2.inOut"}}, b.ini);
+    }}
   }});
+  if (D.direcao.length) tl.to("#ap-wrap", {{scale:1,duration:.22,ease:"power2.out"}},Math.max(0,D.dur-.27));
   D.cenas.forEach(function (c) {{
     var dado = (c.tipo === "numero" || c.tipo === "quadro" || c.tipo === "alerta");
     tl.to("#ap-pupilas", {{ x: dado ? 8 : 0, y: dado ? -7 : 0, duration: 0.2 }}, c.ini + 0.1);
