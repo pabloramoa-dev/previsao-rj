@@ -111,6 +111,9 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair", to
     run(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', audio_filter,
          '-ar', '44100', '-ac', '1', narration])
     run([sys.executable, '-m', PACKAGE + '.amplitude', narration, work / 'lip_full.json', '--fps', '22'])
+    from . import director as DIR
+    plano = DIR.planejar(beats, segments, character)
+    (work / 'direcao.json').write_text(json.dumps(plano if DIR.ativo() else [], ensure_ascii=False,indent=2), encoding='utf-8')
     content = {'batidas': beats, 'personagem': character,
                'cenario': 'entardecer' if character == 'maria' else 'sol',
                'cenario_tipo': 'quintal' if character == 'maria' else 'varanda',

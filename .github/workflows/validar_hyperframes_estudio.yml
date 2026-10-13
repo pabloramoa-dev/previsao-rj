@@ -4,9 +4,12 @@ name: Validar estúdio HyperFrames — Previsão RJ
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feat/direcao-expressiva-rj]
     paths:
       - 'hyperframes/**'
+      - 'src/previsao_rj/render/characters/director.py'
+      - 'src/previsao_rj/render/characters/quality_direction.py'
+      - 'tests/test_direcao_expressiva_rj.py'
       - '.github/workflows/validar_hyperframes_estudio.yml'
 permissions:
   contents: read
@@ -44,7 +47,7 @@ jobs:
       - name: Isolamento e testes do estúdio
         run: |
           python scripts/isolation_guard.py
-          python -m pytest -q tests/test_hyperframes_estudio.py
+          python -m pytest -q tests/test_hyperframes_estudio.py tests/test_direcao_expressiva_rj.py
       - name: Render de demonstração — nunca publica
         run: python hyperframes/gerar_hf.py --demo --personagem ${{ matrix.personagem }} --out output/estudio/${{ matrix.personagem }}.mp4
       - uses: actions/upload-artifact@v4
@@ -53,5 +56,6 @@ jobs:
           path: |
             output/estudio/
             hyperframes/build/pacote.json
+            output/estudio/*.quality.json
           retention-days: 14
           if-no-files-found: error
