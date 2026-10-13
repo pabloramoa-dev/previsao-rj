@@ -48,6 +48,8 @@ sys.path.insert(0, str(AQUI))
 
 from src.previsao_rj.render.characters.amplitude import gerar_cues  # noqa: E402
 from src.previsao_rj.render.characters.pipeline import PRESETS  # noqa: E402
+from src.previsao_rj.render.characters import director as DIRECAO
+from src.previsao_rj.render.characters import quality_direction as QA_DIRECAO
 
 PACKAGE = 'src.previsao_rj.render.characters'
 VERSAO_HF = '0.8.96'
@@ -343,7 +345,9 @@ def preparar(personagem, out, snapshot=None, formato='rio_antes_de_sair', topico
     hora_alvo = os.environ.get('PREVISAO_RJ_HORA_ALVO') or ('18' if personagem == 'bia' else '6')
     agora = dt.datetime.now(ZoneInfo('America/Sao_Paulo'))
     data_iso = agora.date().isoformat() if not demo else (bloco.get('date') or agora.date().isoformat())
+    plano = DIRECAO.planejar(batidas, [dict(ini=a, fim=z) for a,z in tempos], personagem)
     pacote = {
+        'direcao': plano if DIRECAO.ativo() else [],
         'dur': dur, 'personagem': personagem, 'formato': formato, 'demo': demo,
         'data': data_iso, 'data_ext': data_extenso(data_iso),
         'data_previsao': bloco.get('date') or data_iso,
@@ -399,7 +403,11 @@ def renderizar(out, pacote, qualidade='standard'):
          '-c:v', 'libx264', '-profile:v', 'main', '-level', '4.0', '-preset', 'medium',
          '-crf', '20', '-pix_fmt', 'yuv420p', '-r', '30',
          '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', final])
-    conferir(final, pacote['dur'])
+    probe = conferir(final, pacote['dur'])
+    relatorio = QA_DIRECAO.verificar(pacote, probe)
+    QA_DIRECAO.salvar(out.with_suffix('.quality.json'), relatorio)
+    if not relatorio['aprovado_tecnicamente']:
+        raise ValueError('QA do boletim falhou: ' + '; '.join(relatorio['erros']))
     tmp.unlink()
     final.replace(out)
     return out
@@ -427,6 +435,8 @@ def entregar(personagem, out, pacote, batidas, segs, work):
                 'hyperframes_version': VERSAO_HF, 'demo': pacote['demo'],
                 'formato': pacote['formato'], 'ceu': pacote['ceu'],
                 'cenas': [c['tipo'] for c in pacote['cenas']],
+                'direcao_expressiva': bool(pacote.get('direcao')),
+                'gestos': sorted({p['gesto'] for p in pacote.get('direcao',[])}),
                 'segments': segs, 'video': out.name, 'publication': False}
     out.with_suffix('.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     shutil.copy(BUILD / 'pacote.json', work / 'pacote_hyperframes.json')
