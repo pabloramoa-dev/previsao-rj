@@ -38,6 +38,8 @@ from src.previsao_rj.render.characters import lip as LIP
 from src.previsao_rj.render.characters import rj_cast as RJ
 from src.previsao_rj.render.characters import layout as LAY
 from src.previsao_rj.render.characters import vox_papel as VX
+from src.previsao_rj.render.characters import director as DIRECAO
+from src.previsao_rj.render.characters import acting_manim as ATUACAO
 config.frame_width = 8.0
 config.frame_height = 14.222
 config.pixel_width = 1080
@@ -229,6 +231,11 @@ class Piloto(MovingCameraScene):
         else:
             self.add(sombra, G)
         P.conectar_bracos(v)
+        if DIRECAO.ativo():
+            arquivo = os.path.join(TRAB, 'direcao.json')
+            plano = (json.load(open(arquivo, encoding='utf-8')) if os.path.isfile(arquivo)
+                     else DIRECAO.planejar(BATIDAS,SEGS,PERSONAGEM))
+            ATUACAO.anexar_mao_livre(v, plano, escala=1.1)
         L.respirar(G, amp=0.045, periodo=FIM / max(1, round(FIM / 3.0)))
         v['boca'].set_stroke(opacity=0)
         LIP.anexar_lipsync(self, v['boca'], t0=0.0, escala=1.05, deslocamento=DOWN * 0.04)
