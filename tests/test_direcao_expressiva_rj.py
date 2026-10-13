@@ -78,7 +78,7 @@ def test_qa_estrutura_e_audio(tmp_path):
 def test_html_preserva_dados_e_camada_principal():
     pytest = __import__("pytest")
     pytest.importorskip("numpy")
-    from tests.test_hyperframes_estudio import pacote
+    from test_hyperframes_estudio import pacote
     from hyperframes.compor import compor
     p = pacote()
     times = [dict(ini=b["ini"],fim=b["fim"]) for b in p["batidas"]]
