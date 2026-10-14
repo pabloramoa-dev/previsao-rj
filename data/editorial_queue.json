@@ -24677,7 +24677,7 @@
     "created_at": "2026-10-13T17:20:06.388386-03:00",
     "expires_at": "2026-10-13T19:20:06-03:00",
     "vetoes": [],
-    "status": "ready",
+    "status": "expired",
     "confidence": 60.8,
     "language": "forecast"
   },
@@ -24725,7 +24725,7 @@
     "vetoes": [
       "balneabilidade_oficial_indisponivel"
     ],
-    "status": "blocked",
+    "status": "expired",
     "confidence": 60.8,
     "language": "forecast"
   },
@@ -24801,8 +24801,436 @@
     "created_at": "2026-10-13T17:20:06.388386-03:00",
     "expires_at": "2026-10-13T19:20:06-03:00",
     "vetoes": [],
-    "status": "ready",
+    "status": "expired",
     "confidence": 60.8,
+    "language": "forecast"
+  },
+  {
+    "format": "fim_de_semana",
+    "topic": "fim_de_semana",
+    "location_ids": [
+      "barra_da_tijuca",
+      "campo_grande",
+      "centro_rio",
+      "copacabana",
+      "duque_de_caxias",
+      "icarai",
+      "nova_iguacu",
+      "tijuca"
+    ],
+    "facts": {
+      "barra_da_tijuca": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "campo_grande": {
+        "max_c": 31,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 30
+      },
+      "centro_rio": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "copacabana": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "duque_de_caxias": {
+        "max_c": 32,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 28
+      },
+      "icarai": {
+        "max_c": 30,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 35
+      },
+      "nova_iguacu": {
+        "max_c": 31,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 30
+      },
+      "tijuca": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      }
+    },
+    "parts": {
+      "utility": 4,
+      "urgency": 3,
+      "contrast": 0,
+      "shareability": 5,
+      "novelty": 5
+    },
+    "extra": {
+      "dates": [
+        "2026-10-17",
+        "2026-10-18"
+      ],
+      "forecast": {
+        "2026-10-17": [
+          {
+            "id": "barra_da_tijuca",
+            "max_c": 25,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 23
+          },
+          {
+            "id": "campo_grande",
+            "max_c": 25,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 30
+          },
+          {
+            "id": "centro_rio",
+            "max_c": 25,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 23
+          },
+          {
+            "id": "copacabana",
+            "max_c": 25,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 23
+          },
+          {
+            "id": "duque_de_caxias",
+            "max_c": 25,
+            "rain_probability_pct": 88,
+            "wind_gust_max_kmh": 23
+          },
+          {
+            "id": "icarai",
+            "max_c": 24,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 30
+          },
+          {
+            "id": "nova_iguacu",
+            "max_c": 25,
+            "rain_probability_pct": 88,
+            "wind_gust_max_kmh": 30
+          },
+          {
+            "id": "tijuca",
+            "max_c": 25,
+            "rain_probability_pct": 94,
+            "wind_gust_max_kmh": 23
+          }
+        ],
+        "2026-10-18": [
+          {
+            "id": "barra_da_tijuca",
+            "max_c": 24,
+            "rain_probability_pct": 20,
+            "wind_gust_max_kmh": 35
+          },
+          {
+            "id": "campo_grande",
+            "max_c": 24,
+            "rain_probability_pct": 10,
+            "wind_gust_max_kmh": 41
+          },
+          {
+            "id": "centro_rio",
+            "max_c": 24,
+            "rain_probability_pct": 20,
+            "wind_gust_max_kmh": 35
+          },
+          {
+            "id": "copacabana",
+            "max_c": 24,
+            "rain_probability_pct": 20,
+            "wind_gust_max_kmh": 35
+          },
+          {
+            "id": "duque_de_caxias",
+            "max_c": 24,
+            "rain_probability_pct": 10,
+            "wind_gust_max_kmh": 37
+          },
+          {
+            "id": "icarai",
+            "max_c": 24,
+            "rain_probability_pct": 20,
+            "wind_gust_max_kmh": 39
+          },
+          {
+            "id": "nova_iguacu",
+            "max_c": 24,
+            "rain_probability_pct": 10,
+            "wind_gust_max_kmh": 41
+          },
+          {
+            "id": "tijuca",
+            "max_c": 24,
+            "rain_probability_pct": 20,
+            "wind_gust_max_kmh": 35
+          }
+        ]
+      }
+    },
+    "total": 17,
+    "classification": "reel",
+    "turno": "manha",
+    "character": "bira",
+    "hook_key": "1e83f672ad9106954b5d",
+    "dedupe_key": "4c49ffd2e26206450361f2a4aefc5ee16353be3ff47d2dc7727db45408af7989",
+    "created_at": "2026-10-14T05:20:09.357035-03:00",
+    "expires_at": "2026-10-14T07:20:09-03:00",
+    "vetoes": [],
+    "status": "ready",
+    "confidence": 51.9,
+    "language": "forecast"
+  },
+  {
+    "format": "vai_dar_praia",
+    "topic": "praia",
+    "location_ids": [
+      "barra_da_tijuca",
+      "copacabana",
+      "icarai"
+    ],
+    "facts": {
+      "barra_da_tijuca": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "copacabana": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "icarai": {
+        "max_c": 30,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 35
+      }
+    },
+    "parts": {
+      "utility": 4,
+      "urgency": 3,
+      "contrast": 0,
+      "shareability": 5,
+      "novelty": 5
+    },
+    "extra": {},
+    "total": 17,
+    "classification": "reel",
+    "turno": "manha",
+    "character": "bira",
+    "hook_key": "6e357f4c63a8e22ea059",
+    "dedupe_key": "8bce8ca47e2d37b924557b5c8b506bb8387815d2eff41a52bee874c0a7bccfa8",
+    "created_at": "2026-10-14T05:20:09.357035-03:00",
+    "expires_at": "2026-10-14T07:20:09-03:00",
+    "vetoes": [
+      "balneabilidade_oficial_indisponivel"
+    ],
+    "status": "blocked",
+    "confidence": 51.9,
+    "language": "forecast"
+  },
+  {
+    "format": "amanha_no_rio",
+    "topic": "amanha",
+    "location_ids": [
+      "barra_da_tijuca",
+      "campo_grande",
+      "centro_rio",
+      "copacabana",
+      "duque_de_caxias",
+      "icarai",
+      "nova_iguacu",
+      "tijuca"
+    ],
+    "facts": {
+      "barra_da_tijuca": {
+        "max_c": 30,
+        "rain_probability_pct": 55,
+        "wind_gust_max_kmh": 29
+      },
+      "campo_grande": {
+        "max_c": 30,
+        "rain_probability_pct": 45,
+        "wind_gust_max_kmh": 36
+      },
+      "centro_rio": {
+        "max_c": 30,
+        "rain_probability_pct": 55,
+        "wind_gust_max_kmh": 29
+      },
+      "copacabana": {
+        "max_c": 30,
+        "rain_probability_pct": 55,
+        "wind_gust_max_kmh": 29
+      },
+      "duque_de_caxias": {
+        "max_c": 30,
+        "rain_probability_pct": 70,
+        "wind_gust_max_kmh": 33
+      },
+      "icarai": {
+        "max_c": 29,
+        "rain_probability_pct": 55,
+        "wind_gust_max_kmh": 28
+      },
+      "nova_iguacu": {
+        "max_c": 30,
+        "rain_probability_pct": 70,
+        "wind_gust_max_kmh": 36
+      },
+      "tijuca": {
+        "max_c": 30,
+        "rain_probability_pct": 55,
+        "wind_gust_max_kmh": 29
+      }
+    },
+    "parts": {
+      "utility": 5,
+      "urgency": 3,
+      "contrast": 0,
+      "shareability": 4,
+      "novelty": 3
+    },
+    "extra": {
+      "date": "2026-10-15"
+    },
+    "total": 15,
+    "classification": "reel",
+    "turno": "noite",
+    "character": "bia",
+    "hook_key": "c71a35f28915497692ef",
+    "dedupe_key": "3b2820443435c19a28b705343d9d0617a40e218cf9575017dbd78c47550e6b60",
+    "created_at": "2026-10-14T05:20:09.357035-03:00",
+    "expires_at": "2026-10-14T07:20:09-03:00",
+    "vetoes": [],
+    "status": "ready",
+    "confidence": 51.9,
+    "language": "forecast"
+  },
+  {
+    "format": "chove_onde",
+    "topic": "janela_chuva",
+    "location_ids": [
+      "duque_de_caxias",
+      "nova_iguacu"
+    ],
+    "facts": {
+      "duque_de_caxias": {
+        "max_c": 32,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 28
+      },
+      "nova_iguacu": {
+        "max_c": 31,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 30
+      }
+    },
+    "parts": {
+      "utility": 4,
+      "urgency": 4,
+      "contrast": 0,
+      "shareability": 4,
+      "novelty": 3
+    },
+    "extra": {},
+    "total": 15,
+    "classification": "reel",
+    "turno": "manha",
+    "character": "bira",
+    "hook_key": "ca4ce9719377756d5bae",
+    "dedupe_key": "3dcc7cffd49896d2dd298da8722bd1e977192cdf834ea6e68efe0108d7521e5f",
+    "created_at": "2026-10-14T05:20:09.357035-03:00",
+    "expires_at": "2026-10-14T07:20:09-03:00",
+    "vetoes": [],
+    "status": "published",
+    "confidence": 51.9,
+    "language": "forecast",
+    "claimed_at": "2026-10-14T06:00:05-03:00",
+    "published_at": "2026-10-14T06:01:05-03:00",
+    "media_id": "17877039894633820"
+  },
+  {
+    "format": "rio_antes_de_sair",
+    "topic": "resumo",
+    "location_ids": [
+      "barra_da_tijuca",
+      "campo_grande",
+      "centro_rio",
+      "copacabana",
+      "duque_de_caxias",
+      "icarai",
+      "nova_iguacu",
+      "tijuca"
+    ],
+    "facts": {
+      "barra_da_tijuca": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "campo_grande": {
+        "max_c": 31,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 30
+      },
+      "centro_rio": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "copacabana": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      },
+      "duque_de_caxias": {
+        "max_c": 32,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 28
+      },
+      "icarai": {
+        "max_c": 30,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 35
+      },
+      "nova_iguacu": {
+        "max_c": 31,
+        "rain_probability_pct": 50,
+        "wind_gust_max_kmh": 30
+      },
+      "tijuca": {
+        "max_c": 32,
+        "rain_probability_pct": 33,
+        "wind_gust_max_kmh": 28
+      }
+    },
+    "parts": {
+      "utility": 3,
+      "urgency": 3,
+      "contrast": 0,
+      "shareability": 3,
+      "novelty": 3
+    },
+    "extra": {},
+    "total": 12,
+    "classification": "story",
+    "turno": "manha",
+    "character": "bira",
+    "hook_key": "2ee4b0539944b86baf13",
+    "dedupe_key": "1dea576e511252923d5dc53fa643a7adeaaa1324bde5863d62515fa3b7df1dc9",
+    "created_at": "2026-10-14T05:20:09.357035-03:00",
+    "expires_at": "2026-10-14T07:20:09-03:00",
+    "vetoes": [],
+    "status": "ready",
+    "confidence": 51.9,
     "language": "forecast"
   }
 ]
