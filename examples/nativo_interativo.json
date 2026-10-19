@@ -1,0 +1,12 @@
+{
+  "interatividade": {
+    "modo": "quiz",
+    "pergunta": "O vento pode mudar a sensação térmica na orla?",
+    "opcoes": [
+      "Sim",
+      "Não"
+    ],
+    "resposta": "Sim, pode",
+    "segundos": 2.7
+  }
+}
