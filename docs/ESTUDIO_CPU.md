@@ -30,13 +30,15 @@ NAO esta pronto para postagem publica.
 
 JSON: name, style (nina, guru, mengao, tempo, sabio), footer e scenes.
 Cada cena: title, text, seconds (2..18), voice_text (opcional),
-image (opcional) e voice_file (opcional).
+image OU video (opcional), media_credit (obrigatorio com video) e voice_file (opcional).
 
 - image deve apontar para um arquivo PNG/JPG local relativo ao JSON, como
   ../assets/minha_arte.png. As imagens devem ser autorizadas para reutilizacao.
 - voice_file deve apontar para uma narracao MP3/WAV local feita pelo motor
   de voz oficial do personagem. Isso tem prioridade sobre a voz espeak.
-- Se houver imagem, o compositor reserva area de arte e reduz o bloco textual.
+- Se houver imagem OU video, o compositor reserva area de arte e reduz o bloco textual.
+- video e um MP4 local licenciado; o FFmpeg reproduz em loop, sem download nem GPU.
+- Declare media_credit como fonte/licenca do clipe; o manifesto final preserva a origem.
 - Os estilos oferecem identidade de cor; isto NAO redesenha ou anima o rig
   original do personagem. Um retrato aprovado pode ser enviado no campo image.
 - A largura e altura sao 1080x1920; video H.264 e audio AAC.
@@ -53,8 +55,8 @@ Videos devem ficar nos artefatos temporarios, nunca commitados no Git.
 
 ## Limites desta primeira integracao
 
-- Nao gera imagens novas por IA, nao seleciona automaticamente clipes B-roll
-  e nao modifica o render dos episodios regulares.
+- Nao gera imagens novas por IA, nao baixa/seleciona automaticamente B-roll da internet
+  e nao modifica o render dos episodios regulares. O usuario fornece o clipe local.
 - Para usar fotos/videos do Pexels ou Openverse, baixe apenas itens cuja
   licenca permita uso e registre a origem, sem depender de APIs pagas.
 - Recursos futuros: reutilizar diretamente sprites/vozes existentes, sincronizar
