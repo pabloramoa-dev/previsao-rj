@@ -156,6 +156,14 @@ def render(character, destination, snapshot=None, format="rio_antes_de_sair", to
     hour_label = f'{int(target_hour):02d}:00' if target_hour else now.strftime('%H:%M')
     render_boletim(out, beats, segments, character=character, date=date_label,
                    hour=hour_label, root=ROOT)
+    # Apenas pauta explicitamente interativa: preserva voz Kokoro e cena Manim.
+    editorial_interativo = (prepared or {}).get("interatividade")
+    if not editorial_interativo and isinstance(snapshot, dict):
+        editorial_interativo = snapshot.get("interatividade")
+    if editorial_interativo:
+        from tools.native_video_finisher import apply_from_metadata
+        print("acabamento nativo:", apply_from_metadata(
+            out, {"interatividade": editorial_interativo}, ROOT))
     run(['ffmpeg', '-y', '-v', 'error', '-i', out, '-vf', 'scale=720:1280',
          '-c:v', 'libx264', '-profile:v', 'main', '-crf', '24', '-pix_fmt', 'yuv420p',
          '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
