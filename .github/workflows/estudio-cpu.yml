@@ -1,0 +1,44 @@
+name: Estudio CPU gratuito - piloto
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - tools/cpu_studio.py
+      - tools/test_cpu_studio.py
+      - examples/cpu_piloto.json
+      - .github/workflows/estudio-cpu.yml
+  workflow_dispatch:
+  push:
+    branches: [feat/estudio-cpu-gratuito-20261019]
+    paths:
+      - tools/cpu_studio.py
+      - examples/cpu_piloto.json
+      - .github/workflows/estudio-cpu.yml
+permissions:
+  contents: read
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pillow
+      - run: python -m unittest discover -s tools -p test_cpu_studio.py -v
+      - run: python tools/cpu_studio.py --spec examples/cpu_piloto.json --check-only
+      - name: Render e QA sem publicar (somente manual)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core espeak-ng
+          python tools/cpu_studio.py --spec examples/cpu_piloto.json --output output/estudio_cpu.mp4 --tts espeak
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: estudo-cpu-piloto
+          path: |
+            output/estudio_cpu.mp4
+            output/estudio_cpu.json
+          retention-days: 1

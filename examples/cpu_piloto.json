@@ -1,0 +1,27 @@
+{
+  "name": "BIA DA ORLA",
+  "style": "tempo",
+  "footer": "Que regiao do RJ voce quer ver?",
+  "scenes": [
+    {
+      "title": "Quiz do tempo no Rio",
+      "text": "A previsao pode ser diferente entre a praia e a serra.",
+      "seconds": 4
+    },
+    {
+      "title": "Pergunta do dia",
+      "text": "Quando o vento muda, o clima na orla tambem pode mudar?",
+      "seconds": 4
+    },
+    {
+      "title": "Escolha sua resposta",
+      "text": "A: Sim, o vento pode influenciar. B: Nao, nunca influencia.",
+      "seconds": 4
+    },
+    {
+      "title": "Resposta",
+      "text": "Alternativa A. O vento influencia as condicoes sentidas perto do litoral.",
+      "seconds": 4
+    }
+  ]
+}
