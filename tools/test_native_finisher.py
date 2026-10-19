@@ -37,7 +37,7 @@ class NativeTests(unittest.TestCase):
                             "-c:a","aac","-pix_fmt","yuv420p",str(clip)],check=True)
             info1=N._probe(clip)
             report=N.finish(clip,{"modo":"quiz","pergunta":"Qual das alternativas voce escolheria?",
-                                  "opcoes":["Opcao numero um","Opcao numero dois"],"segundos":2.5},root)
+                                  "opcoes":["Opcao numero um","Opcao numero dois"],"segundos":2.5,"resposta":"Opcao numero dois"},root)
             info2=N._probe(clip)
             self.assertTrue(report["applied"])
             self.assertEqual(info2["width"], info1["width"])
@@ -48,6 +48,23 @@ class NativeTests(unittest.TestCase):
             shot=root/"ultimo.png"
             subprocess.run(["ffmpeg","-y","-v","error","-sseof","-0.8","-i",str(clip),"-frames:v","1",str(shot)],check=True)
             self.assertGreater(shot.stat().st_size,10000)
+            # Um clipe curto REAL de apoio e renderizado no quadro final,
+            # mas a voz e os frames animados originais continuam no inicio.
+            apoio=root/"clipe_licenciado.mp4"
+            subprocess.run(["ffmpeg","-y","-v","error","-f","lavfi",
+                            "-i","testsrc2=size=320x180:rate=25","-t","1.4",
+                            "-c:v","libx264","-preset","ultrafast",str(apoio)],check=True)
+            clip2=root/"video_com_apoio.mp4"
+            subprocess.run(["ffmpeg","-y","-v","error","-f","lavfi","-i",
+                            "testsrc2=size=540x960:rate=25","-f","lavfi",
+                            "-i","sine=frequency=330:sample_rate=48000",
+                            "-t","3","-c:v","libx264","-preset","ultrafast",
+                            "-c:a","aac",str(clip2)],check=True)
+            broll=N.finish(clip2,{"pergunta":"O que voce notou no clipe de apoio?",
+                                  "broll_video":apoio.name,"credito":"gerado na propria CI",
+                                  "segundos":2.5},root)
+            self.assertTrue(broll["licensed_broll"])
+            self.assertGreater(N._probe(clip2)["duration"],5)
 
 if __name__=="__main__":
     unittest.main()
