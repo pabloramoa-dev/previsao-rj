@@ -156,7 +156,7 @@ def render(spec, spec_dir, destination, tts):
             fade_out = max(duration-.22, .2)
             run(["ffmpeg", "-y", "-v", "error", "-loop", "1", "-framerate", FPS, "-i", frame,
                  *sources, "-t", f"{duration:.3f}", "-vf",
-                 f"fade=t=in:st=0:d=.18,fade=t=out:st={fade_out:.3f}:d=.18,format=yuv420p",
+                 f"fade=t=in:st=0:d=0.18,fade=t=out:st={fade_out:.3f}:d=0.18,format=yuv420p",
                  "-af", "apad", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "24",
                  "-r", FPS, "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-shortest", clip])
             videos.append(clip)
