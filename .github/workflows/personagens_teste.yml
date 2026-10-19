@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        personagem: [bira, bia]
+        personagem: [ranzinza, maria]
     env:
       OMP_NUM_THREADS: '2'
     steps:
