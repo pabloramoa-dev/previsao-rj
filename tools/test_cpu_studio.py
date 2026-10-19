@@ -35,6 +35,20 @@ class EstudioCPUTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.validate(case, self.path.parent)
 
+    def test_video_pede_origem_de_uso(self):
+        case = json.loads(json.dumps(self.base))
+        case["scenes"][0]["video"] = "video.mp4"
+        with self.assertRaises(ValueError):
+            mod.validate(case, self.path.parent)
+
+    def test_nao_permite_imagem_e_video_juntos(self):
+        case = json.loads(json.dumps(self.base))
+        case["scenes"][0]["video"] = "video.mp4"
+        case["scenes"][0]["image"] = "arte.png"
+        case["scenes"][0]["media_credit"] = "teste"
+        with self.assertRaises(ValueError):
+            mod.validate(case, self.path.parent)
+
     def test_renderiza_arte_sem_rede(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "frame.png"
