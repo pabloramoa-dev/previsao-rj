@@ -143,7 +143,7 @@ def _poster(last_frame, output, config, width, height, broll_image=None):
            round(84*scale), round(39*scale), accent, True)
     base.save(output)
 
-def finish(video_file, config, root, *, max_total=60, replace=True):
+def finish(video_file, config, root, *, max_total=180, replace=True):
     """Só renderiza se a pauta declara interatividade; retorna manifesto verificável."""
     original = Path(video_file).resolve()
     root = Path(root).resolve()
@@ -177,20 +177,31 @@ def finish(video_file, config, root, *, max_total=60, replace=True):
               "-frames:v", "1", frame])
         broll_image = _asset(root, cfg.get("broll_imagem"))
         broll_video = _asset(root, cfg.get("broll_video"))
-        if broll_video:
-            broll_image = tmp / "broll.png"
-            _run(["ffmpeg", "-y", "-v", "error", "-i", broll_video, "-frames:v", "1", broll_image])
         _poster(frame, poster, cfg, info["width"], info["height"], broll_image)
         inputs = ["-i", original, "-loop", "1", "-framerate", info["fps"], "-i", poster]
         parts = [f"[0:v]fps={info['fps']},setsar=1,setpts=PTS-STARTPTS[orig]",
                  f"[1:v]trim=duration={seconds:.3f},fps={info['fps']},setpts=PTS-STARTPTS,setsar=1[card]"]
-        labels = "[orig][card]"
+        card_label = "[card]"
+        if broll_video:
+            # B-roll local em MOVIMENTO, na área reservada no cartão, jamais
+            # sobre a boca da personagem ou sobre legendas narradas.
+            n = 2
+            bw, bh = round(info["width"] * .66), round(info["height"] * .20)
+            by = round(info["height"] * .60)
+            inputs += ["-stream_loop", "-1", "-i", broll_video]
+            parts.append(f"[{n}:v]fps={info['fps']},scale={bw}:{bh}:force_original_aspect_ratio=decrease,"
+                         f"pad={bw}:{bh}:(ow-iw)/2:(oh-ih)/2:color=0x262634,setsar=1,"
+                         f"trim=duration={seconds:.3f},setpts=PTS-STARTPTS[broll]")
+            parts.append(f"[card][broll]overlay=x=(W-w)/2:y={by}:shortest=1[card_broll]")
+            card_label = "[card_broll]"
+        labels = "[orig]" + card_label
         if cfg.get("resposta"):
             answer_poster = tmp / "resposta.png"
             answer_cfg = dict(cfg, pergunta="RESPOSTA: " + cfg["resposta"], opcoes=[])
             _poster(frame, answer_poster, answer_cfg, info["width"], info["height"])
+            n = 3 if broll_video else 2
             inputs += ["-loop", "1", "-framerate", info["fps"], "-i", answer_poster]
-            parts.append(f"[2:v]trim=duration={answer_seconds:.3f},fps={info['fps']},setpts=PTS-STARTPTS,setsar=1[answer]")
+            parts.append(f"[{n}:v]trim=duration={answer_seconds:.3f},fps={info['fps']},setpts=PTS-STARTPTS,setsar=1[answer]")
             labels += "[answer]"
         filter_video = ";".join(parts) + ";" + labels + f"concat=n={3 if cfg.get('resposta') else 2}:v=1:a=0[v]"
         _run(["ffmpeg", "-y", "-v", "error", *inputs,
