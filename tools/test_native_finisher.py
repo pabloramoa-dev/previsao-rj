@@ -44,7 +44,7 @@ class NativeTests(unittest.TestCase):
             self.assertGreater(info2["duration"], info1["duration"]+2)
             self.assertTrue(N.apply_from_metadata(clip, {"interatividade":{
                 "modo":"quiz","pergunta":"Qual das alternativas voce escolheria?",
-                "opcoes":["Opcao numero um","Opcao numero dois"],"segundos":2.5}},root)["reused"])
+                "opcoes":["Opcao numero um","Opcao numero dois"],"segundos":2.5,"resposta":"Opcao numero dois"}},root)["reused"])
             shot=root/"ultimo.png"
             subprocess.run(["ffmpeg","-y","-v","error","-sseof","-0.8","-i",str(clip),"-frames:v","1",str(shot)],check=True)
             self.assertGreater(shot.stat().st_size,10000)
