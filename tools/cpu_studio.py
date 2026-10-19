@@ -86,7 +86,11 @@ def validate(spec, spec_dir):
         duration = scene.get("seconds", 4)
         if isinstance(duration, bool) or not isinstance(duration, (float, int)) or not math.isfinite(duration) or not 2 <= duration <= 18:
             raise ValueError("Duracao deve estar entre 2 e 18 segundos: " + str(i))
-        for key in ("image", "voice_file"):
+        if scene.get("video") and scene.get("image"):
+            raise ValueError("Escolha image OU video para a mesma cena")
+        if scene.get("video") and not str(scene.get("media_credit") or "").strip():
+            raise ValueError("video exige media_credit (origem/licenca)")
+        for key in ("image", "video", "voice_file"):
             if scene.get(key):
                 _local_path(spec_dir, scene[key])
     return spec
@@ -105,6 +109,7 @@ def make_frame(spec, scene, number, path, spec_dir):
         with Image.open(img_path) as original:
             art = ImageOps.contain(original.convert("RGBA"), (840, 410))
             im.paste(art, ((1080 - art.width)//2, 660), art)
+    if img_path or scene.get("video"):
         ytxt = 1120
         tsize, maxlines = 44, 5
     else:
@@ -149,19 +154,29 @@ def render(spec, spec_dir, destination, tts):
             make_frame(spec, scene, i, frame, spec_dir)
             voice = make_voice(scene, work, i, spec_dir, tts)
             duration = max(float(scene.get("seconds", 4)), audio_duration(voice) + .45 if voice else 0)
+            video = _local_path(spec_dir, scene.get("video"))
             if voice:
                 sources = ["-i", voice]
             else:
                 sources = ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]
+            video_sources = ["-stream_loop", "-1", "-i", video] if video else []
             fade_out = max(duration-.22, .2)
+            fade = f"fade=t=in:st=0:d=0.18,fade=t=out:st={fade_out:.3f}:d=0.18,format=yuv420p"
+            if video:
+                graph = ("[1:v]scale=840:410:force_original_aspect_ratio=decrease,"
+                         "pad=840:410:(ow-iw)/2:(oh-ih)/2:color=white,setsar=1[filme];"
+                         f"[0:v][filme]overlay=120:660:shortest=0,{fade}[outv]")
+                maps = ["-filter_complex", graph, "-map", "[outv]", "-map", "2:a:0"]
+            else:
+                maps = ["-vf", fade]
             run(["ffmpeg", "-y", "-v", "error", "-loop", "1", "-framerate", FPS, "-i", frame,
-                 *sources, "-t", f"{duration:.3f}", "-vf",
-                 f"fade=t=in:st=0:d=0.18,fade=t=out:st={fade_out:.3f}:d=0.18,format=yuv420p",
+                 *video_sources, *sources, "-t", f"{duration:.3f}", *maps,
                  "-af", "apad", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "24",
                  "-r", FPS, "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-shortest", clip])
             videos.append(clip)
             report.append({"scene": i+1, "seconds": round(duration, 2), "narrated": bool(voice),
-                           "has_image": bool(scene.get("image"))})
+                           "has_image": bool(scene.get("image")), "has_video": bool(video),
+                           "media_credit": scene.get("media_credit") if video else None})
         manifest = work / "concat.txt"
         manifest.write_text("".join("file '" + str(p).replace("'", "'\\''") + "'\n" for p in videos), encoding="utf-8")
         tmp_out = destination.with_suffix(".rendering.mp4")
