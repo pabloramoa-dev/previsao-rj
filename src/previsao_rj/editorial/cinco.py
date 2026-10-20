@@ -36,8 +36,15 @@ def _valido(loc: dict[str, Any]) -> bool:
 
 
 def _linha(nome: str, loc: dict[str, Any], regiao: str | None) -> dict[str, Any]:
-    return {'nome': nome, 'min': loc['min_c'], 'max': loc['max_c'],
-            'id': loc.get('id'), 'regiao': regiao}
+    row = {'nome': nome, 'min': loc['min_c'], 'max': loc['max_c'],
+           'id': loc.get('id'), 'regiao': regiao}
+    for source, target in (('rain_probability_pct', 'prob_chuva'),
+                           ('rain_mm', 'chuva_mm'),
+                           ('wind_gust_max_kmh', 'vento_kmh')):
+        val = loc.get(source)
+        if isinstance(val, (float, int)) and not isinstance(val, bool) and math.isfinite(val):
+            row[target] = val
+    return row
 
 
 def cinco_regioes(locations: list[dict[str, Any]], minimo: int = MINIMO) -> list[dict[str, Any]]:
