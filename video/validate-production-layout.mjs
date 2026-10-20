@@ -11,7 +11,9 @@ const cli=resolve(video,'node_modules/hyperframes/bin/hyperframes.mjs');
 const chrome=execFileSync('node',[cli,'browser','path'],{encoding:'utf8'}).trim().split('\n').at(-1);
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--allow-file-access-from-files']});
 try{
- const page=await browser.newPage();await page.setViewport({width:1080,height:1920});
+ const page=await browser.newPage();
+ await page.evaluateOnNewDocument(()=>{window.__timelines={};});
+ await page.setViewport({width:1080,height:1920});
  await page.goto(pathToFileURL(resolve(work,'index.html')).href,{waitUntil:'load'});
  await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode()));});
  const result=await page.evaluate(()=>{
