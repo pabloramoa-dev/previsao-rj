@@ -5,6 +5,7 @@ Desenhado na metade direita do Reel para preservar o apresentador.
 """
 from __future__ import annotations
 import math
+from pathlib import Path
 from PIL import ImageDraw, ImageFont
 
 INK = "#12314B"
@@ -36,7 +37,9 @@ def metrics(loc):
 
 
 def _font(size, bold=False):
-    return ImageFont.truetype(FONT_BOLD if bold else FONT_REG, size)
+    preferred = Path(FONT_BOLD if bold else FONT_REG)
+    bundled = Path(__file__).parent / "story_assets" / ("Manrope-Bold.ttf" if bold else "Manrope-Regular.ttf")
+    return ImageFont.truetype(str(preferred if preferred.is_file() else bundled), size)
 
 
 def _fit(draw, label, font, max_width):
