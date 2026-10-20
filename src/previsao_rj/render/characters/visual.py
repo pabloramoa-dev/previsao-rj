@@ -953,8 +953,16 @@ def card_resumo(cidades, titulo="AS CINCO PRINCIPAIS", altura_max=2.9,
         linhas.add(t)
     nomes = [Text(c["nome"], font=FONTE, weight=BOLD, font_size=38, color=WHITE)
              for c in cidades]
-    temps = [Text(f"{int(c['min'])}°  /  {int(c['max'])}°", font=FONTE,
-                  weight=BOLD, font_size=38, color=AMAR) for c in cidades]
+    # Mostra chance de chuva junto da faixa térmica quando a coleta a fornece.
+    # Ausência não é tratada como 0%. O formato continua compacto para cinco regiões.
+    def faixa(c):
+        valor = f"{int(c['min'])}° / {int(c['max'])}°"
+        chuva = c.get('prob_chuva')
+        if isinstance(chuva, (int, float)) and not isinstance(chuva, bool) and math.isfinite(chuva):
+            valor += f"  |  {chuva:.0f}%"
+        return valor
+    temps = [Text(faixa(c), font=FONTE,
+                  weight=BOLD, font_size=33, color=AMAR) for c in cidades]
 
     # UM fator de escala pra TODOS os nomes, calculado pelo mais comprido.
     # Encolher só o nome que não coube — que foi a primeira versão — deixa
