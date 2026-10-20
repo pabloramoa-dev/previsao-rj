@@ -1,0 +1,145 @@
+name: Teste completo Bira HyperFrames sem publicação
+on:
+  push:
+    branches: [test/hf-quadros-live-20261020]
+    paths: ['.github/workflows/teste_quadros_live.yml', 'hyperframes/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+
+concurrency:
+  group: previsao-rj-publicacao
+  cancel-in-progress: false
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      FONTE: live
+      PUBLICAR: false
+      # Colagem de papel (vox) por padrão; variable PREVISAO_RJ_ESTILO=classico volta.
+      PREVISAO_RJ_HORA_ALVO: "13"
+      PREVISAO_RJ_ESTILO: ${{ vars.PREVISAO_RJ_ESTILO || 'vox' }}
+      PREVISAO_RJ_MOTOR: hyperframes
+    steps:
+      # Sempre a ponta da main, e NÃO o commit do disparo: um agendamento
+      # atrasado que ficou esperando na fila de concorrência carregaria a fila
+      # editorial antiga (sem o Reel que acabou de sair) e as três travas
+      # deixariam passar um Reel repetido.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Preparar HyperFrames
+        uses: ./.github/actions/setup-hyperframes
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+
+      - name: Dependências
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          mkdir -p ~/.local/share/fonts/poppins
+          for f in Poppins-Bold.ttf Poppins-Regular.ttf; do
+            curl -fsSL --retry 3 -o ~/.local/share/fonts/poppins/$f https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/$f
+          done
+          fc-cache -f
+          pip install -r requirements/test.txt -r requirements/characters.txt
+
+      - name: Isolamento e testes
+        run: |
+          python scripts/isolation_guard.py
+          python -m pytest -q
+
+      - name: Bloquear publicação com fixture
+        if: ${{ env.PUBLICAR == 'true' && env.FONTE != 'live' }}
+        run: |
+          echo "PUBLICAÇÃO BLOQUEADA: dados de fixture nunca vão para o feed."
+          exit 1
+
+      # ------------------------------------------------------------- fixture
+
+      - name: Usar fixture técnica
+        if: ${{ env.FONTE == 'fixture' }}
+        run: |
+          mkdir -p output
+          cp tests/fixtures/snapshot_rj.json output/snapshot.json
+
+      - name: Demonstração sem previsão de produção
+        if: ${{ env.FONTE == 'fixture' }}
+        run: |
+          P="bira"
+          if [ "$P" = "auto" ]; then P=bira; fi
+          python hyperframes/gerar_hf.py --demo --personagem "$P" --out output/REEL.mp4
+
+      # ---------------------------------------------------------------- live
+
+      - name: Coletar dados ao vivo
+        if: ${{ env.FONTE == 'live' }}
+        run: python -m scripts.collect_live output/snapshot.json
+
+      - name: Avaliar pautas e atualizar a fila
+        if: ${{ env.FONTE == 'live' }}
+        run: python -m scripts.editorial_scan output/snapshot.json --out data/editorial_queue.json
+
+      # Ficar sem pauta aqui é erro, não silêncio: quem apertou o botão precisa
+      # saber que não há Reel e por quê, em vez de receber um artifact vazio.
+      - name: Escolher a pauta
+        id: pauta
+        if: ${{ env.FONTE == 'live' }}
+        run: |
+          python -m scripts.escolher_pauta \
+            --queue data/editorial_queue.json \
+            --out output/pauta.json \
+            --turno "manha" \
+            --exigir-pauta
+
+      - name: Render com a pauta escolhida
+        if: ${{ env.FONTE == 'live' }}
+        run: |
+          P="bira"
+          if [ "$P" = "auto" ]; then P="${{ steps.pauta.outputs.personagem }}"; fi
+          python hyperframes/gerar_hf.py \
+            --snapshot output/snapshot.json \
+            --personagem "$P" \
+            --format "${{ steps.pauta.outputs.formato }}" \
+            --topico "${{ steps.pauta.outputs.topico }}" \
+            --out output/REEL.mp4
+
+      # ------------------------------------------------------ comum aos dois
+
+      - name: Legenda
+        run: |
+          if [ -f output/pauta.json ]; then
+            python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt --pauta output/pauta.json
+          else
+            python -m scripts.build_caption output/snapshot.json output/LEGENDA.txt
+          fi
+
+      - name: Mostrar pauta, roteiro e legenda no resumo
+        run: |
+          {
+            echo "## Pauta"
+            echo "- fonte: \`${{ inputs.fonte }}\`"
+            echo "- formato: \`${{ steps.pauta.outputs.formato || 'demonstração' }}\`"
+            echo "- apresentador: \`${{ steps.pauta.outputs.personagem || inputs.personagem }}\`"
+            echo "- dedupe_key: \`${{ steps.pauta.outputs.dedupe_key || '—' }}\`"
+            echo '## Legenda'
+            echo '```'
+            cat output/LEGENDA.txt 2>/dev/null || echo '(sem legenda)'
+            echo '```'
+            echo '## Roteiro falado'
+            echo '```'
+            cat output/work_*/roteiro.txt 2>/dev/null || echo '(sem roteiro)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: QA
+        run: python scripts/qa_video.py output/REEL.mp4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: previsao-rj-reel-${{ github.run_id }}
+          path: output/
+          retention-days: 14
+
