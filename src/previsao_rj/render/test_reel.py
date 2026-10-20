@@ -3,6 +3,7 @@ import argparse, json, math, subprocess, tempfile, os
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from src.previsao_rj.editorial.script import build_script
+from src.previsao_rj.render.weather_panel import draw_weather_panel
 
 W,H=540,960
 FPS=30
@@ -109,18 +110,9 @@ def render(snapshot_path: str, out: str):
             centered(d,'DOIS RIOS',442,fnt(48),'#FFD34E')
             d.text((70,520),'temperatura + chance de chuva',font=fnt(17,False),fill='#466276')
         elif t < 8.2:
-            d.text((245,372),'CONTRASTE DE HOJE',font=fnt(22),fill='#0B1F33')
-            card(d,230,414,280,125,hot['name'],f"{hot['max_c']}°",'mais quente na amostra','#F59A4A')
-            card(d,230,553,280,125,cool['name'],f"{cool['max_c']}°",'mais ameno na amostra','#58AEE8')
+            draw_weather_panel(d, hot)
         elif t < 13.2:
-            d.text((245,372),'CHUVA: ONDE OLHAR',font=fnt(22),fill='#0B1F33')
-            d.rounded_rectangle((230,420,510,630),24,fill='#FFFFFF',outline='#D7E4ED',width=3)
-            d.text((258,450),wet['name'],font=fnt(26),fill='#0B1F33')
-            d.text((258,500),f"{wet['rain_probability_pct']}%",font=fnt(56),fill='#5E8DFF')
-            d.text((258,575),'chance máxima na fixture técnica',font=fnt(15,False),fill='#466276')
-            for k in range(4):
-                xx=440+k*14; yy=535+(k%2)*8
-                d.line((xx,yy,xx-5,yy+18),fill='#5E8DFF',width=4)
+            draw_weather_panel(d, wet)
         else:
             d.rounded_rectangle((225,400,512,670),24,fill='#0B1F33')
             centered(d,'ANTES DE SAIR',432,fnt(28),'#FFFFFF',250)
