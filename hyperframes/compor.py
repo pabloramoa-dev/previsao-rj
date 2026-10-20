@@ -243,7 +243,7 @@ def cena_abertura(p, cena, bat):
     d = date.fromisoformat(p["data_previsao"])
     meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
     miolo = f'''{paisagem(p["ceu"], "ab")}
- <div class="ab-kicker"><span class="tag tag-red">{esc(APRESENTADOR[p["personagem"]]["kicker"])}</span>
+ <div class="ab-kicker"><span class="tag tag-red">{esc("PREVISÃO DAS " + str(int(p["hora"].split(":")[0])) + "H")}</span>
   <span class="tag tag-yel">{quando} · {d.day:02d} {meses[d.month - 1]}</span></div>
  <div class="ab-placa"></div>
  <div class="ab-titulo" data-layout-allow-overlap="true">{palavras}</div>
@@ -292,18 +292,20 @@ def cena_numero(p, cena, bat):
 def cena_quadro(p, cena, bat):
     res = bat[cena["batidas"][0]]
     cidades = res["dados"]["cidades"]
+    import math
+    def metric(c, key, unit, decimals=0):
+        v = c.get(key)
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(v):
+            return "—"
+        return f"{v:.{decimals}f}".replace(".", ",") + unit
     linhas = []
-    for k, c in enumerate(cidades):
-        def cel(v, cls):
-            v = int(round(v))
-            s = f"{v:02d}" if v >= 0 else str(v)
-            return "".join(f'<span class="flap {cls}" data-alvo="{ch}">{ch}</span>' for ch in s)
+    for c in cidades:
         linhas.append(f'''
   <div class="qd-linha">
    <div class="qd-barra"></div>
-   <div class="qd-cidade">{esc(c["nome"].upper())}</div>
-   <div class="qd-cels"><div class="qd-cel qd-min">{cel(c["min"], "fmin")}<i>°</i></div>
-   <div class="qd-cel qd-max">{cel(c["max"], "fmax")}<i>°</i></div></div>
+   <div class="qd-main"><div class="qd-cidade">{esc(c["nome"].upper())}</div>
+   <div class="qd-cels"><span class="qd-min">{metric(c, "min", "°")}</span><span class="qd-max">{metric(c, "max", "°")}</span></div></div>
+   <div class="qd-metrics"><span>CHUVA <b>{metric(c, "prob_chuva", "%")}</b></span><span>VOLUME <b>{metric(c, "chuva_mm", " mm", 1)}</b></span><span>RAJADAS <b>{metric(c, "vento_kmh", " km/h")}</b></span></div>
   </div>''')
     miolo = f'''{paisagem(p["ceu"], "qd")}
  <div class="qd-veu"></div>
@@ -471,15 +473,16 @@ html, body {{ width: 1080px; height: 1920px; overflow: hidden; background: {NAVY
 .qd-head {{ display: flex; justify-content: space-between; align-items: center; font-family: "BarlowCB", sans-serif; font-size: 36px; color: {YEL}; letter-spacing: 3px; margin-bottom: 8px; }}
 .qd-cols {{ display: flex; gap: 62px; padding-right: 22px; }}
 .qd-cols b {{ font-weight: 700; }}
-.qd-linha {{ position: relative; display: flex; align-items: center; justify-content: space-between; height: 104px; padding-left: 26px; border-top: 3px solid #22364a; }}
-.qd-barra {{ position: absolute; left: 0; top: 16px; width: 10px; height: 72px; background-color: {YEL}; border-radius: 5px; }}
-.qd-cidade {{ font-family: "BarlowC", sans-serif; font-size: 58px; color: #ffffff; white-space: nowrap; }}
-.qd-cels {{ display: flex; gap: 20px; }}
-.qd-cel {{ display: flex; align-items: center; gap: 4px; }}
-.qd-cel i {{ font-style: normal; font-family: "BarlowC", sans-serif; font-size: 46px; color: #9fb3c8; }}
-.flap {{ display: block; width: 52px; height: 76px; line-height: 76px; text-align: center; font-family: "BarlowC", sans-serif; font-size: 62px; color: #ffffff; background-color: #1d3044; border-radius: 8px; border-bottom: 3px solid #0a1520; }}
-.qd-max .flap {{ color: {YEL}; }}
-.qd-min .flap {{ color: #9fd8ff; }}
+.qd-linha {{ position: relative; height: 104px; padding: 8px 0 8px 22px; border-top: 3px solid #22364a; }}
+.qd-barra {{ position:absolute;left:0;top:14px;width:8px;height:76px;background:{YEL};border-radius:5px; }}
+.qd-main {{ display:flex;align-items:center;justify-content:space-between;height:48px; }}
+.qd-cidade {{ font-family:"BarlowC",sans-serif;font-size:42px;color:white;white-space:nowrap; }}
+.qd-cels {{ display:flex;gap:30px;font-family:"BarlowC",sans-serif;font-size:44px; }}
+.qd-cels span {{ width:82px;text-align:center; }}
+.qd-min {{ color:#9fd8ff; }}
+.qd-max {{ color:{YEL}; }}
+.qd-metrics {{ display:flex;justify-content:space-between;gap:10px;font-family:"BarlowCB",sans-serif;font-size:30px;color:#b9ccdd;line-height:30px; }}
+.qd-metrics b {{ color:white;font-weight:700; }}
 /* ---------- alerta ---------- */
 .al-fundo {{ position: absolute; inset: 0; background-color: {RED}; background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.18) 0 44px, rgba(0,0,0,0) 44px 88px); }}
 .al-icone {{ position: absolute; top: 250px; left: 0; right: 0; display: flex; justify-content: center; }}
