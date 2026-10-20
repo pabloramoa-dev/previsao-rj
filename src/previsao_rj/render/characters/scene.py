@@ -118,7 +118,32 @@ def painel(tipo, d):
         return P.numero_gigante(d['numero'], d.get('sub'), cor=CORES_GANCHO.get(d.get('cor'), P.AMAR))
     if tipo == 'cidade':
         c = d['cidade']
-        return P.card_cidade(c['nome'], c['min'], c['max'], c.get('cond', 'sol'))
+        base = P.card_cidade(c['nome'], c['min'], c['max'], c.get('cond', 'sol'))
+        # Enriquecimento informativo sem inventar dados: apenas campos presentes.
+        detalhes = []
+        for chave, rotulo, unidade in (
+            ('prob_chuva', 'Chuva', '%'),
+            ('chuva_mm', 'Volume', ' mm'),
+            ('vento_kmh', 'Rajadas', ' km/h'),
+        ):
+            valor = c.get(chave)
+            if isinstance(valor, (int, float)) and not isinstance(valor, bool) and np.isfinite(valor):
+                detalhes.append(f'{rotulo}: {valor:g}{unidade}')
+        if not detalhes:
+            return base
+        linhas = VGroup(*[
+            Text(txt, font=P.FONTE, weight=BOLD, font_size=28, color=WHITE)
+            for txt in detalhes
+        ]).arrange(DOWN, buff=0.13)
+        fundo = RoundedRectangle(
+            width=P.larg_segura(), height=linhas.height + 0.4,
+            corner_radius=0.18, fill_color=BLACK, fill_opacity=0.76,
+            stroke_color=WHITE, stroke_width=2)
+        linhas.move_to(fundo)
+        enriquecido = VGroup(base, VGroup(fundo, linhas)).arrange(DOWN, buff=0.16)
+        if enriquecido.height > 4.8:
+            enriquecido.scale_to_fit_height(4.8)
+        return enriquecido
     if tipo == 'resumo':
         return P.card_resumo(d['cidades'], d.get('titulo', 'AS CINCO PRINCIPAIS'), altura_max=5.6, buff=0.34, fs_titulo=32)
     if tipo == 'amplitude':
