@@ -12,7 +12,7 @@ Regra de ouro herdada: NADA congela. Todo personagem em cena leva respirar().
 """
 from manim import *
 import numpy as np
-import sys, os
+import sys, os, math
 
 from . import core as L
 
