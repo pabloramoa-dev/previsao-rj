@@ -346,7 +346,9 @@ def preparar(personagem, out, snapshot=None, formato='rio_antes_de_sair', topico
     agora = dt.datetime.now(ZoneInfo('America/Sao_Paulo'))
     data_iso = agora.date().isoformat() if not demo else (bloco.get('date') or agora.date().isoformat())
     plano = DIRECAO.planejar(batidas, [dict(ini=a, fim=z) for a,z in tempos], personagem)
+    from src.previsao_rj.render.practical import tips
     pacote = {
+        'dicas_praticas': tips(locs),
         'direcao': plano if DIRECAO.ativo() else [],
         'dur': dur, 'personagem': personagem, 'formato': formato, 'demo': demo,
         'data': data_iso, 'data_ext': data_extenso(data_iso),
@@ -392,6 +394,7 @@ def renderizar(out, pacote, qualidade='standard'):
         if shutil.which(nome):
             env[f'HYPERFRAMES_{nome.upper()}_PATH'] = shutil.which(nome)
     run(['node', CLI, 'lint', AQUI], env=env, cwd=AQUI)
+    run(['node', RAIZ/'video/validate-production-layout.mjs', AQUI], env=env, cwd=AQUI)
     out = Path(out).resolve()
     tmp = out.with_name(out.stem + '.rendering.mp4')
     run(['node', CLI, 'render', AQUI, '--output', tmp, '--quality', qualidade,
@@ -410,6 +413,8 @@ def renderizar(out, pacote, qualidade='standard'):
         raise ValueError('QA do boletim falhou: ' + '; '.join(relatorio['erros']))
     tmp.unlink()
     final.replace(out)
+    from tools.channel_ops import record_render
+    record_render(out, {"batidas": pacote["batidas"], "data_previsao": pacote["data_previsao"]}, RAIZ)
     return out
 
 

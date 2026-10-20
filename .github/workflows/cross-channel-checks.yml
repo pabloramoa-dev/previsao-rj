@@ -1,0 +1,34 @@
+name: Validar melhorias compartilhadas
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/**'
+      - 'video/validate-production-layout.mjs'
+      - 'studio/**'
+      - 'estudio/**'
+      - 'motor/**'
+      - 'hyperframes/**'
+      - 'src/**'
+      - 'daily/**'
+      - '.github/workflows/cross-channel-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pillow>=10.4,<12' requests numpy
+      - name: Recibos, métricas e regressões do canal
+        run: |
+          python tools/test_channel_upgrades.py
+          python tools/test_specific_upgrades.py
+      - uses: ./.github/actions/setup-hyperframes
+      - name: Testar detecção de sobreposição no navegador real
+        run: python tools/test_layout_checker.py
