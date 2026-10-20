@@ -243,7 +243,7 @@ def cena_abertura(p, cena, bat):
     d = date.fromisoformat(p["data_previsao"])
     meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
     miolo = f'''{paisagem(p["ceu"], "ab")}
- <div class="ab-kicker"><span class="tag tag-red">{esc(APRESENTADOR[p["personagem"]]["kicker"])}</span>
+ <div class="ab-kicker"><span class="tag tag-red">{esc("PREVISÃO DAS " + str(int(p["hora"].split(":")[0])) + "H")}</span>
   <span class="tag tag-yel">{quando} · {d.day:02d} {meses[d.month - 1]}</span></div>
  <div class="ab-placa"></div>
  <div class="ab-titulo" data-layout-allow-overlap="true">{palavras}</div>
@@ -481,7 +481,7 @@ html, body {{ width: 1080px; height: 1920px; overflow: hidden; background: {NAVY
 .qd-cels span {{ width:82px;text-align:center; }}
 .qd-min {{ color:#9fd8ff; }}
 .qd-max {{ color:{YEL}; }}
-.qd-metrics {{ display:flex;justify-content:space-between;gap:10px;font-family:"BarlowCB",sans-serif;font-size:23px;color:#b9ccdd;line-height:30px; }}
+.qd-metrics {{ display:flex;justify-content:space-between;gap:10px;font-family:"BarlowCB",sans-serif;font-size:30px;color:#b9ccdd;line-height:30px; }}
 .qd-metrics b {{ color:white;font-weight:700; }}
 /* ---------- alerta ---------- */
 .al-fundo {{ position: absolute; inset: 0; background-color: {RED}; background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.18) 0 44px, rgba(0,0,0,0) 44px 88px); }}
