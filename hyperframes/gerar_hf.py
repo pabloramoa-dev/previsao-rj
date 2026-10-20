@@ -396,6 +396,7 @@ def renderizar(out, pacote, qualidade='standard'):
     run(['node', CLI, 'lint', AQUI], env=env, cwd=AQUI)
     run(['node', RAIZ/'video/validate-production-layout.mjs', AQUI], env=env, cwd=AQUI)
     out = Path(out).resolve()
+    shutil.copy2(AQUI/'layout-check.json', out.with_suffix('.layout.json'))
     tmp = out.with_name(out.stem + '.rendering.mp4')
     run(['node', CLI, 'render', AQUI, '--output', tmp, '--quality', qualidade,
          '--workers', os.environ.get('PREVISAO_HF_WORKERS', '2')], env=env, cwd=AQUI)
