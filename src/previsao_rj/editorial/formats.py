@@ -35,7 +35,7 @@ def rio_antes_de_sair(snapshot, incerto):
     # apresentador de cena; se todas as batidas fossem dessas, a locucao inteira
     # sairia sobre um cenario vazio. A abertura e o aviso de incerteza sao as
     # batidas em que ele aparece.
-    batidas = [batida('Antes de sair de casa, veja como fica o tempo no Rio hoje.')]
+    batidas = [batida('Veja a previsão do Rio para hoje.')]
     if incerto:
         batidas.append(batida('O cenário ainda tem incerteza. Há possibilidade de mudança.'))
     if contraste['temperature']['relevant']:
