@@ -265,7 +265,7 @@ locations:
     latitude: -22.9020
     longitude: -43.2790
     aliases: [meier, engenho de dentro]
-    sample_tier: 2
+    sample_tier: 1
     spatial_fit: alto
   - id: madureira
     name: "Madureira"
@@ -275,7 +275,7 @@ locations:
     latitude: -22.8730
     longitude: -43.3390
     aliases: [madureira, cascadura]
-    sample_tier: 2
+    sample_tier: 1
     spatial_fit: alto
   - id: iraja
     name: "Irajá"
