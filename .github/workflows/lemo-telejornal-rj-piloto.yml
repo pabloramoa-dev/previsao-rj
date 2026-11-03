@@ -1,0 +1,104 @@
+name: Lemo Opuscar - Telejornal Previsao RJ (SEM PUBLICAR)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [experimento/lemo-opuscar-rj-20261103]
+    paths:
+      - ".github/workflows/lemo-telejornal-rj-piloto.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lemo-telejornal-rj-piloto
+  cancel-in-progress: false
+
+jobs:
+  episodio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PREVISAO_RJ_MOTOR: hyperframes
+      PREVISAO_RJ_ESTILO: vox
+      PREVISAO_RJ_HORA_ALVO: "10"
+      HYPERFRAMES_NO_TELEMETRY: "1"
+      DO_NOT_TRACK: "1"
+    steps:
+      - name: Checkout somente do laboratorio
+        uses: actions/checkout@v4
+
+      - name: Preparar HyperFrames
+        uses: ./.github/actions/setup-hyperframes
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache modelos TTS e pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/kokoro
+          key: previsao-rj-lemo-20261103-v1
+
+      - name: Instalar FFmpeg, fontes, render e Kokoro
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config fonts-dejavu-core
+          mkdir -p ~/.local/share/fonts/poppins
+          for f in Poppins-Bold.ttf Poppins-Regular.ttf; do
+            curl -fsSL --retry 3 -o ~/.local/share/fonts/poppins/$f \
+              https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/$f
+          done
+          fc-cache -f
+          pip install -r requirements/test.txt -r requirements/characters.txt
+
+      - name: Testar pacote visual e regras de isolamento
+        run: |
+          python -m unittest discover -s lab/opuscar-rj -p 'test_*.py' -v
+          python scripts/isolation_guard.py
+
+      - name: Coletar previsao real e data de emissao
+        run: python -m scripts.collect_live output/snapshot.json
+
+      - name: Renderizar episodio original completo com Bira e voz Kokoro
+        run: |
+          python hyperframes/gerar_hf.py \
+            --snapshot output/snapshot.json \
+            --personagem bira \
+            --format rio_antes_de_sair \
+            --out output/REEL_BASE_RJ.mp4
+
+      - name: Montar pacote Lemo Opuscar sem alterar audio e sincronismo
+        run: |
+          python lab/opuscar-rj/montar.py \
+            --original output/REEL_BASE_RJ.mp4 \
+            --snapshot output/snapshot.json \
+            --saida output/REEL_OPUSCAR_RJ.mp4
+
+      - name: Validar MP4 final, capa e preview
+        run: |
+          test -s output/REEL_OPUSCAR_RJ.mp4
+          test -s output/REEL_OPUSCAR_RJ_preview_720p.mp4
+          test -s output/CAPA_OPUSCAR_RJ.jpg
+          python scripts/qa_video.py output/REEL_OPUSCAR_RJ.mp4
+          ffprobe -v error -show_entries stream=codec_type,width,height,avg_frame_rate \
+            -of json output/REEL_OPUSCAR_RJ.mp4
+          ffmpeg -v error -i output/REEL_OPUSCAR_RJ.mp4 -f null -
+
+      - name: Entregar videos no artifact, nunca publicar no Instagram
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: piloto-opuscar-previsao-rj
+          path: |
+            output/REEL_OPUSCAR_RJ.mp4
+            output/REEL_OPUSCAR_RJ_preview_720p.mp4
+            output/CAPA_OPUSCAR_RJ.jpg
+            output/REEL_OPUSCAR_RJ.json
+            output/snapshot.json
+            output/work_bira/roteiro.txt
+          if-no-files-found: warn
+          retention-days: 4
