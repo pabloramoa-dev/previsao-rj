@@ -311,7 +311,7 @@ def cena_quadro(p, cena, bat):
  <div class="qd-veu"></div>
  <div class="qd-topo"><span class="qd-check">✓</span><span class="qd-titulo">{esc(res["dados"].get("titulo", "NA REGIÃO"))}</span></div>
  <div class="qd-painel">
-  <div class="qd-head"><span>AS CINCO REGIÕES</span><span class="qd-cols"><b>MÍN</b><b>MÁX</b></span></div>
+  <div class="qd-head"><span>AS {len(cidades)} REGIÕES</span><span class="qd-cols"><b>MÍN</b><b>MÁX</b></span></div>
   {"".join(linhas)}
   <div class="qd-dicas" data-qa-bounds="true">{esc(" · ".join(p.get("dicas_praticas", [])))}</div>
  </div>'''
