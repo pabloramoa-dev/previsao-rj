@@ -926,12 +926,12 @@ def card_cidade(cidade, tmin, tmax, condicao="sol", largura=None):
     return VGroup(band, linha)
 
 
-def card_resumo(cidades, titulo="AS CINCO PRINCIPAIS", altura_max=2.9,
+def card_resumo(cidades, titulo="PREVISÃO POR REGIÃO", altura_max=2.9,
                 buff=0.16, fs_titulo=26):
-    """O quadro com as cinco cidades e min/máx de cada, tudo de uma vez.
+    """O quadro com as regiões e min/máx de cada, tudo de uma vez.
 
     Por que TUDO de uma vez, e não um cartão por cidade: quem abre o Reel quer
-    a temperatura DA SUA cidade. Num carrossel de cinco cartões ele espera até
+    a temperatura DA SUA cidade. Num carrossel de vários cartões ele espera até
     a vez dela — e a maioria desliza antes. Num quadro só, acha a linha dele no
     primeiro segundo e fica pelo resto.
 
@@ -954,7 +954,7 @@ def card_resumo(cidades, titulo="AS CINCO PRINCIPAIS", altura_max=2.9,
     nomes = [Text(c["nome"], font=FONTE, weight=BOLD, font_size=38, color=WHITE)
              for c in cidades]
     # Mostra chance de chuva junto da faixa térmica quando a coleta a fornece.
-    # Ausência não é tratada como 0%. O formato continua compacto para cinco regiões.
+    # Ausência não é tratada como 0%. O formato continua compacto para seis regiões.
     def faixa(c):
         valor = f"{int(c['min'])}° / {int(c['max'])}°"
         chuva = c.get('prob_chuva')
