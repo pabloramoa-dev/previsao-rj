@@ -1,9 +1,9 @@
-"""As cinco previsões que todo Reel mostra (decisão do proprietário, 16/09/2026).
+"""As seis previsões que todo Reel mostra (decisão do proprietário, 16/09/2026).
 
 Todo Reel, de qualquer apresentador e de qualquer formato, mostra pelo menos
-cinco previsões na tela, sempre cobrindo:
+seis previsões na tela, sempre cobrindo:
 
-    Niterói · Centro do Rio · Zona Sul · Baixada · Campo Grande
+    Niterói · Centro do Rio · Zona Sul · Zona Norte · Baixada · Campo Grande
 
 Cada região é representada pelo ponto-âncora dela na coleta (sample_tier 1 em
 config/locais_rj.yaml). Se o ponto preferido faltar, vale outro da mesma zona.
@@ -16,7 +16,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-MINIMO = 5
+MINIMO = 6
 
 # (rótulo na tela, ids preferidos em ordem, zonas aceitas como reserva)
 REGIOES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
@@ -24,6 +24,7 @@ REGIOES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
                  'camboinhas', 'itaipu', 'itacoatiara'), ('niteroi_baia', 'niteroi_oceanica')),
     ('Centro do Rio', ('centro_rio', 'lapa', 'gloria', 'saude_gamboa'), ('centro',)),
     ('Zona Sul', ('copacabana', 'ipanema', 'botafogo', 'flamengo', 'leblon', 'urca'), ('zona_sul',)),
+    ('Zona Norte', ('meier', 'madureira', 'iraja', 'penha', 'ilha_do_governador'), ('zona_norte',)),
     ('Baixada', ('duque_de_caxias', 'nova_iguacu', 'sao_joao_de_meriti', 'belford_roxo',
                  'nilopolis', 'mesquita'), ('baixada',)),
     ('Campo Grande', ('campo_grande',), ()),
@@ -48,8 +49,10 @@ def _linha(nome: str, loc: dict[str, Any], regiao: str | None) -> dict[str, Any]
 
 
 def cinco_regioes(locations: list[dict[str, Any]], minimo: int = MINIMO) -> list[dict[str, Any]]:
-    """Linhas do cartão de resumo: as cinco regiões fixas, na ordem, e o
-    complemento até `minimo` se alguma faltar na coleta."""
+    """Linhas do cartão: seis regiões fixas, com complemento se faltar alguma.
+
+    O nome da função foi mantido para não quebrar os importadores existentes.
+    """
     validos = [l for l in locations if _valido(l)]
     por_id = {l.get('id'): l for l in validos}
     usados: set[str] = set()
@@ -87,7 +90,7 @@ def fala_resumo(linhas: list[dict[str, Any]], quando: str = '') -> str:
 
     Curta de propósito — o Reel tem teto de 40 s (e o roteiro, de ~80
     palavras) e o cartão já mostra cada número. Ex.: "Niterói, Centro, Zona
-    Sul, Baixada e Campo Grande: de 27 a 36 graus."
+    Sul, Zona Norte, Baixada e Campo Grande: de 27 a 36 graus."
     """
     nomes = [FALADO.get(l['nome'], l['nome']) for l in linhas]
     lista = nomes[0] if len(nomes) == 1 else ', '.join(nomes[:-1]) + ' e ' + nomes[-1]

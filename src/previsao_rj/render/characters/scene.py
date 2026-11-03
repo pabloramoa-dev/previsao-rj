@@ -145,7 +145,7 @@ def painel(tipo, d):
             enriquecido.scale_to_fit_height(4.8)
         return enriquecido
     if tipo == 'resumo':
-        return P.card_resumo(d['cidades'], d.get('titulo', 'AS CINCO PRINCIPAIS'), altura_max=5.6, buff=0.34, fs_titulo=32)
+        return P.card_resumo(d['cidades'], d.get('titulo', 'PREVISÃO POR REGIÃO'), altura_max=5.6, buff=0.34, fs_titulo=32)
     if tipo == 'amplitude':
         c = d['cidade']
         return _duplo(_card_valor('Manhã', c['min']), _card_valor('Tarde', c['max']))

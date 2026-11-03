@@ -1,5 +1,5 @@
-"""Todo Reel mostra pelo menos cinco previsões: Niterói, Centro do Rio,
-Zona Sul, Baixada e Campo Grande (decisão de 16/09/2026)."""
+"""Todo Reel mostra pelo menos seis previsões: Niterói, Centro do Rio,
+Zona Sul, Zona Norte, Baixada e Campo Grande (decisão de 16/09/2026)."""
 import copy
 
 import pytest
@@ -8,13 +8,15 @@ from src.previsao_rj.editorial.cinco import cinco_regioes, fala_resumo, faltando
 from src.previsao_rj.editorial.formats import prepare
 from src.previsao_rj.editorial.duracao import cortar_para_janela
 
-OBRIGATORIAS = ['Niterói', 'Centro do Rio', 'Zona Sul', 'Baixada', 'Campo Grande']
+OBRIGATORIAS = ['Niterói', 'Centro do Rio', 'Zona Sul', 'Zona Norte', 'Baixada', 'Campo Grande']
 
-# Os oito pontos-âncora (sample_tier 1) que a coleta diária traz.
+# Os dez pontos-âncora (sample_tier 1) que a coleta diária traz.
 TIER1 = [
     ('copacabana', 'Copacabana', 'zona_sul', 22, 29),
     ('tijuca', 'Tijuca', 'grande_tijuca', 21, 31),
     ('centro_rio', 'Centro', 'centro', 22, 32),
+    ('meier', 'Méier', 'zona_norte', 22, 33),
+    ('madureira', 'Madureira', 'zona_norte', 23, 34),
     ('barra_da_tijuca', 'Barra da Tijuca', 'barra_recreio', 21, 30),
     ('campo_grande', 'Campo Grande', 'zona_oeste', 20, 34),
     ('icarai', 'Icaraí', 'niteroi_baia', 22, 28),
@@ -33,8 +35,21 @@ def test_coleta_diaria_vira_as_cinco_na_ordem():
     linhas = cinco_regioes(locais())
     assert [l['nome'] for l in linhas] == OBRIGATORIAS
     assert [l['id'] for l in linhas] == ['icarai', 'centro_rio', 'copacabana',
-                                         'duque_de_caxias', 'campo_grande']
+                                         'meier', 'duque_de_caxias', 'campo_grande']
     assert faltando(linhas) == []
+
+
+def test_zona_norte_sem_meier_usa_madureira():
+    locs = [l for l in locais() if l['id'] != 'meier']
+    norte = [l for l in cinco_regioes(locs) if l['nome'] == 'Zona Norte'][0]
+    assert norte['id'] == 'madureira'
+
+
+def test_zona_norte_sem_dados_nao_inventa_temperatura():
+    locs = [l for l in locais() if l['zone'] != 'zona_norte']
+    linhas = cinco_regioes(locs)
+    assert 'Zona Norte' in faltando(linhas)
+    assert all(l['regiao'] != 'Zona Norte' for l in linhas)
 
 
 def test_ponto_preferido_ausente_usa_outro_da_mesma_zona():
@@ -54,7 +69,7 @@ def test_zona_sem_id_conhecido_ainda_conta():
 def test_regiao_ausente_nao_empresta_numero_e_completa_com_nome_real():
     locs = [l for l in locais() if l['id'] != 'campo_grande']
     linhas = cinco_regioes(locs)
-    assert len(linhas) == 5
+    assert len(linhas) == 6
     assert 'Campo Grande' not in [l['nome'] for l in linhas]
     assert faltando(linhas) == ['Campo Grande']
     extra = linhas[-1]
@@ -73,8 +88,8 @@ def test_ponto_sem_minima_ou_maxima_fica_de_fora():
 
 def test_fala_do_resumo_e_curta_e_nomeia_as_regioes():
     fala = fala_resumo(cinco_regioes(locais()))
-    assert fala == 'Niterói, Centro, Zona Sul, Baixada e Campo Grande: de 28 a 35 graus.'
-    assert len(fala.split()) <= 13
+    assert fala == 'Niterói, Centro, Zona Sul, Zona Norte, Baixada e Campo Grande: de 28 a 35 graus.'
+    assert len(fala.split()) <= 16
     assert fala_resumo(cinco_regioes(locais()), 'No sábado').startswith('No sábado, em Niterói')
 
 

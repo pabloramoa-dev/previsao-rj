@@ -36,6 +36,12 @@ def test_amostra_do_reel_base_cobre_rio_niteroi_e_baixada():
     assert len(tier1) >= 6
 
 
+def test_zona_norte_esta_na_coleta_diaria():
+    tier1 = config.locations_by_tier(1)
+    norte = {loc['id'] for loc in tier1 if loc['zone'] == 'zona_norte'}
+    assert {'meier', 'madureira'} <= norte
+
+
 def test_amostra_e_deterministica():
     assert config.locations_by_tier(1) == config.locations_by_tier(1)
     ids = [loc["id"] for loc in config.locations_by_tier(1)]

@@ -22,6 +22,9 @@ FUTURO = '2099-01-01T00:00:00-03:00'
 MANHA = Path('.github/workflows/reel_manha.yml')
 NOITE = Path('.github/workflows/reel_noite.yml')
 CINCO = ['Niterói', 'Centro do Rio', 'Zona Sul', 'Baixada', 'Campo Grande']
+# A fixture legada não contém dados meteorológicos da Zona Norte; a sexta
+# linha deve ser identificada como Barra da Tijuca, jamais atribuída ao Norte.
+SEIS_DA_FIXTURE = CINCO + ['Barra da Tijuca']
 
 
 def test_apresentador_segue_o_turno():
@@ -62,9 +65,10 @@ def test_roteiro_de_amanha_le_o_bloco_de_amanha(snapshot):
     resumo = [b for b in beats if b['tipo'] == 'resumo']
     assert len(resumo) == 1
     assert resumo[0]['dados']['titulo'] == 'AMANHÃ NA REGIÃO'
-    assert [c['nome'] for c in resumo[0]['dados']['cidades']] == CINCO
+    assert [c['nome'] for c in resumo[0]['dados']['cidades']] == SEIS_DA_FIXTURE
     assert all(c['max'] == 40.0 for c in resumo[0]['dados']['cidades'])
-    assert resumo[0]['fala'].startswith('Niterói, Centro, Zona Sul, Baixada e Campo Grande')
+    assert resumo[0]['fala'].startswith('Niterói, Centro, Zona Sul, Baixada, Campo Grande e Barra da Tijuca')
+    assert 'Zona Norte' not in [c['nome'] for c in resumo[0]['dados']['cidades']]
     falas = ' '.join(b['fala'] for b in beats)
     assert falas.count('Amanhã') + falas.count('amanhã') <= 3   # sem repetição cansativa
     ganchos = [b for b in beats if b['tipo'] == 'gancho']
