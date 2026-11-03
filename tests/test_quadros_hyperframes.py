@@ -15,3 +15,15 @@ def test_quadros_hyperframes_usam_todos_os_indicadores():
         assert value in html
     assert html.count("—") == 3
     assert "None" not in html and "nan" not in html
+
+
+def test_quadro_mostra_seis_regioes_sem_ocultar_zona_norte():
+    cidades = [dict(nome=n, min=21, max=30) for n in
+               ("Niterói", "Centro do Rio", "Zona Sul", "Zona Norte", "Baixada", "Campo Grande")]
+    p = dict(ceu="sol", dur=10)
+    c = dict(id="quadro", tipo="quadro", ini=0, batidas=[0])
+    b = [dict(dados=dict(cidades=cidades, titulo="HOJE NA REGIÃO"))]
+    html = cena_quadro(p, c, b)
+    assert "AS 6 REGIÕES" in html
+    assert html.count('class="qd-linha"') == 6
+    assert "ZONA NORTE" in html
