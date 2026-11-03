@@ -73,7 +73,7 @@ def amanha_no_rio(snapshot, incerto):
     """Reel da noite (Bia, 18h): como fica o tempo AMANHÃ.
 
     Mesma espinha do `rio_antes_de_sair`, lendo o bloco `tomorrow` do snapshot:
-    abertura sem cartão, gancho de temperatura, as cinco previsões, chance de
+    abertura sem cartão, gancho de temperatura, as seis previsões, chance de
     chuva, vento (se relevante) e o fecho. Nenhuma batida sem o dado dela.
     """
     bloco = snapshot['forecast'].get('tomorrow') or {}
@@ -123,7 +123,7 @@ def amanha_no_rio(snapshot, incerto):
 
 
 def batida_resumo(locations, titulo, quando=''):
-    """Cartão das cinco previsões obrigatórias (ver editorial/cinco.py)."""
+    """Cartão das seis previsões obrigatórias (ver editorial/cinco.py)."""
     cidades = cinco_regioes(locations)
     if not cidades:
         return None
@@ -224,7 +224,7 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None, 
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
     lines.append('Previsão RJ. Confira a atualização antes de sair.')
     beats=[batida(line[0], legenda=line[1]) if isinstance(line, tuple) else batida(line) for line in lines]
-    # Todo Reel mostra as cinco previsões obrigatórias, antes do fecho.
+    # Todo Reel mostra as seis previsões obrigatórias, antes do fecho.
     resumos = []
     if format == 'fim_de_semana':
         for block in snapshot['forecast'].values():
