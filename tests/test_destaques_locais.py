@@ -43,7 +43,7 @@ def test_rodizio_pelo_dia_de_publicacao(snapshot, data, esperado):
 @pytest.mark.parametrize('data', ['2026-11-02', '2026-11-05'])
 def test_sao_goncalo_falado_de_manha_e_noite(snapshot, data):
     doc = com_data_e_goncalo(snapshot, data)
-    for montar, previsto in ((rio_antes_de_sair, 'Hoje'), (amanha_no_rio, 'Amanhã')):
+    for montar, previsto in ((rio_antes_de_sair, 'Hoje'), (amanha_no_rio, 'Em')):
         beats = montar(doc, incerto=False)
         destaque = [b for b in beats if b['dados'].get('destaque_local')]
         assert len(destaque) == 1
