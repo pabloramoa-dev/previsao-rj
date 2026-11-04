@@ -49,11 +49,14 @@ def gancho_destaque(snapshot, locations, periodo):
     icarai = local['id'] == 'icarai'
     onde = 'em Icaraí, Niterói' if icarai else 'em São Gonçalo'
     selo = 'ICARAÍ · NITERÓI' if icarai else 'SÃO GONÇALO'
-    inicio = 'Hoje' if periodo == 'hoje' else 'Amanhã'
-    fala = (f"{inicio}, {onde}: mínima de {local['min_c']:g} e "
+    periodo_na_tela = 'HOJE' if periodo == 'hoje' else 'AMANHÃ'
+    # A abertura noturna já diz 'amanhã'; não repetir na narração.
+    inicio = 'Hoje, ' if periodo == 'hoje' else ''
+    lugar = onde if inicio else onde[0].upper() + onde[1:]
+    fala = (f"{inicio}{lugar}: mínima de {local['min_c']:g} e "
             f"máxima de {local['max_c']:g} graus.")
     return batida(fala, 'gancho', numero=f"{local['max_c']:g}°",
-                  sub=f"{selo} · {inicio.upper()}", destaque_local=True)
+                  sub=f"{selo} · {periodo_na_tela}", destaque_local=True)
 
 
 def rio_antes_de_sair(snapshot, incerto):
