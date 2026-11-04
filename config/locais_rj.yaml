@@ -28,6 +28,7 @@ municipalities:
   niteroi:
     name: "Niterói"
     uf: RJ
+  sao_goncalo: {name: "São Gonçalo", uf: RJ}
   duque_de_caxias: {name: "Duque de Caxias", uf: RJ}
   nova_iguacu: {name: "Nova Iguaçu", uf: RJ}
   sao_joao_de_meriti: {name: "São João de Meriti", uf: RJ}
@@ -84,6 +85,11 @@ zones:
     municipality: niteroi
     coastal: true
     decisions: [praia, mar, vento, balneabilidade]
+  leste_metropolitano:
+    name: "Leste Metropolitano"
+    municipality: sao_goncalo
+    coastal: false
+    decisions: [calor, chuva, deslocamento]
   baixada:
     name: "Baixada Fluminense"
     municipality: null   # zona multimunicipal
@@ -519,6 +525,18 @@ locations:
     sample_tier: 3
     spatial_fit: baixo   # mar aberto e costao, condicao propria
     beach: true
+
+  # ---------------- Sao Goncalo ----------------
+  - id: sao_goncalo
+    name: "São Gonçalo"
+    zone: leste_metropolitano
+    municipality: sao_goncalo
+    type: municipality
+    latitude: -22.8268
+    longitude: -43.0634
+    aliases: [sao goncalo, sao goncalo rj, sg rj]
+    sample_tier: 1
+    spatial_fit: medio
 
   # ---------------- Baixada Fluminense ----------------
   - id: duque_de_caxias
