@@ -7,7 +7,8 @@ from src.previsao_rj import config
 
 ZONAS_DO_PLANO = {
     "zona_sul", "grande_tijuca", "centro", "zona_norte", "jacarepagua",
-    "barra_recreio", "zona_oeste", "niteroi_baia", "niteroi_oceanica", "baixada",
+    "barra_recreio", "zona_oeste", "niteroi_baia", "niteroi_oceanica",
+    "leste_metropolitano", "baixada",
 }
 
 
@@ -34,6 +35,14 @@ def test_amostra_do_reel_base_cobre_rio_niteroi_e_baixada():
     assert "niteroi" in municipios
     assert municipios & {"duque_de_caxias", "nova_iguacu"}, "Baixada fora da amostra"
     assert len(tier1) >= 6
+
+
+def test_sao_goncalo_esta_na_coleta_diaria():
+    locais = config.locations_by_tier(1)
+    sg = next(l for l in locais if l["id"] == "sao_goncalo")
+    assert sg["municipality"] == "sao_goncalo"
+    assert sg["zone"] == "leste_metropolitano"
+    assert sg["name"] == "São Gonçalo"
 
 
 def test_zona_norte_esta_na_coleta_diaria():
