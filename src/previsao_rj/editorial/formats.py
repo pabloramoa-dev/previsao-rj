@@ -1,5 +1,5 @@
 """Cinco formatos com validação de dados antes de produzir a fala."""
-from datetime import timedelta
+from datetime import date, timedelta
 from .contrast import regional_contrast
 from .cinco import cinco_regioes, fala_resumo
 from .engine import evaluate, stamp
@@ -17,6 +17,43 @@ def batida(fala, tipo='nenhum', legenda=None, **dados):
     e a voz pede extenso ("vinte e três horas")."""
     return {'fala': para_voz(fala), 'legenda': decimal_br(legenda or fala),
             'tipo': tipo, 'dados': dados}
+
+
+
+def destaque_da_semana(snapshot, locations):
+    """Destaques por DIA DE PUBLICAÇÃO, nunca pela data de amanhã.
+
+    São Gonçalo: segundas e quintas (segunda oportunidade na semana).
+    Icaraí, Niterói: terças e sábados. Se a coleta não trouxer mínima e
+    máxima válidas, não cita uma previsão sem dados.
+    """
+    try:
+        dia = date.fromisoformat(snapshot['forecast']['today']['date']).weekday()
+    except (KeyError, ValueError, TypeError):
+        return None
+    local_id = {0: 'sao_goncalo', 3: 'sao_goncalo',
+                1: 'icarai', 5: 'icarai'}.get(dia)
+    return next((loc for loc in locations
+                 if loc.get('id') == local_id
+                 and number(loc.get('min_c')) and number(loc.get('max_c'))), None) if local_id else None
+
+
+def gancho_destaque(snapshot, locations, periodo):
+    """Gancho hiperlocal protegido contra corte; substitui o gancho térmico.
+
+    Mantém a duração do Reel e deixa intacto o resumo das seis regiões.
+    """
+    local = destaque_da_semana(snapshot, locations)
+    if local is None:
+        return None
+    icarai = local['id'] == 'icarai'
+    onde = 'em Icaraí, Niterói' if icarai else 'em São Gonçalo'
+    selo = 'ICARAÍ · NITERÓI' if icarai else 'SÃO GONÇALO'
+    inicio = 'Hoje' if periodo == 'hoje' else 'Amanhã'
+    fala = (f"{inicio}, {onde}: mínima de {local['min_c']:g} e "
+            f"máxima de {local['max_c']:g} graus.")
+    return batida(fala, 'gancho', numero=f"{local['max_c']:g}°",
+                  sub=f"{selo} · {inicio.upper()}", destaque_local=True)
 
 
 def rio_antes_de_sair(snapshot, incerto):
@@ -38,7 +75,10 @@ def rio_antes_de_sair(snapshot, incerto):
     batidas = [batida('Veja a previsão do Rio para hoje.')]
     if incerto:
         batidas.append(batida('O cenário ainda tem incerteza. Há possibilidade de mudança.'))
-    if contraste['temperature']['relevant']:
+    destaque = gancho_destaque(snapshot, locs, 'hoje')
+    if destaque is not None:
+        batidas.append(destaque)
+    elif contraste['temperature']['relevant']:
         vao = contraste['temperature']['spread']
         batidas.append(batida(
             f"Hoje a temperatura muda pela região: {vao:g} graus separam "
@@ -87,7 +127,10 @@ def amanha_no_rio(snapshot, incerto):
     batidas = [batida('Amanhã, o tempo no Rio fica assim.')]
     if incerto:
         batidas.append(batida('O cenário para amanhã ainda tem incerteza. Pode mudar até de manhã.'))
-    if contraste['temperature']['relevant']:
+    destaque = gancho_destaque(snapshot, locs, 'amanha')
+    if destaque is not None:
+        batidas.append(destaque)
+    elif contraste['temperature']['relevant']:
         alto, baixo = contraste['temperature']['high'], contraste['temperature']['low']
         vao = contraste['temperature']['spread']
         batidas.append(batida(
