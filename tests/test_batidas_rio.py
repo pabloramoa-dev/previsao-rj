@@ -85,6 +85,8 @@ def test_roteiro_cabe_no_portao_de_qa(snapshot):
 
 
 def test_temperatura_uniforme_nao_vira_gancho_de_contraste(snapshot):
+    # Quarta-feira: sem destaque hiperlocal programado no primeiro gancho.
+    snapshot['forecast']['today']['date'] = '2026-11-04'
     for loc in snapshot['forecast']['today']['locations']:
         loc['max_c'] = 25
     gancho = [b for b in batidas(snapshot) if b['tipo'] == 'gancho'][0]
