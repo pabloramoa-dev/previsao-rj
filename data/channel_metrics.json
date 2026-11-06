@@ -1035,10 +1035,38 @@
         "comments": 0,
         "shares_per_1000_reached": 0.0
       }
+    },
+    {
+      "media_id": "18181962709449344",
+      "window": "24h",
+      "age_hours": 33.27,
+      "collected_at": "2026-11-06T20:54:07.325680+00:00",
+      "metrics": {
+        "reach": 682,
+        "shares": 0,
+        "saved": 0,
+        "likes": 27,
+        "comments": 0,
+        "shares_per_1000_reached": 0.0
+      }
+    },
+    {
+      "media_id": "17908953975667058",
+      "window": "72h",
+      "age_hours": 83.89,
+      "collected_at": "2026-11-06T20:54:07.325680+00:00",
+      "metrics": {
+        "reach": 1360,
+        "shares": 7,
+        "saved": 2,
+        "likes": 62,
+        "comments": 3,
+        "shares_per_1000_reached": 5.15
+      }
     }
   ],
   "status": "ok",
   "errors": [],
-  "updated_at": "2026-11-05T21:28:14.198956+00:00",
+  "updated_at": "2026-11-06T20:54:07.325680+00:00",
   "account": "previsaorj"
 }
