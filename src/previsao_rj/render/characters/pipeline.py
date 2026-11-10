@@ -10,10 +10,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[4]
 PACKAGE = 'src.previsao_rj.render.characters'
 PRESETS = {
-    'bira': {'voice': 'pm_alex', 'pitch': 1.0, 'speed': 1.04, 'gap': 0.22},
-    'bia': {'voice': 'pf_dora', 'pitch': 1.0, 'speed': 1.02, 'gap': 0.24},
-    'ranzinza': {'voice': 'pm_alex', 'pitch': 0.88, 'speed': 0.95, 'gap': 0.30},
-    'maria': {'voice': 'pf_dora', 'pitch': 0.94, 'speed': 0.95, 'gap': 0.30},
+    'bira': {'voice': 'pm_alex:0.82+pm_santa:0.18', 'pitch': 1.0, 'speed': 1.04, 'gap': 0.22},
+    'bia': {'voice': 'pf_dora:0.85+af_heart:0.15', 'pitch': 1.0, 'speed': 1.02, 'gap': 0.24},
+    'ranzinza': {'voice': 'pm_santa:0.75+pm_alex:0.25', 'pitch': 0.88, 'speed': 0.95, 'gap': 0.30},
+    'maria': {'voice': 'pf_dora:0.72+bf_emma:0.28', 'pitch': 0.94, 'speed': 0.95, 'gap': 0.30},
 }
 FILTER = ('asetrate=44100*{pitch},aresample=44100,atempo={inv:.5f},'
           'vibrato=f=5.5:d=0.09,highpass=f=90,'

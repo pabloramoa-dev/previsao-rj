@@ -62,3 +62,9 @@ python scripts/qa_video.py output/REEL_TESTE_01.mp4
 ## Segredos de produção
 
 Veja `docs/SECRETS.md`. Os valores pertencem **somente** ao @previsaorj.
+
+## Vozes e encerramento dos Reels
+
+Bira, Bia, Ranzinza e Dona Maria usam, respectivamente, `pm_alex:0.82+pm_santa:0.18`, `pf_dora:0.85+af_heart:0.15`, `pm_santa:0.75+pm_alex:0.25`, `pf_dora:0.72+bf_emma:0.28`. Os pesos combinam vetores de estilo do Kokoro em português.
+
+A narração termina com um único convite de envio ligado ao assunto do vídeo.

@@ -366,7 +366,7 @@ FAB = {"abertura": cena_abertura, "numero": cena_numero, "quadro": cena_quadro,
 def ticker(p):
     itens = " &#9679; ".join(
         f'{esc(c["nome"].upper())} <b>{round(c["min"])}°/{round(c["max"])}°</b>' for c in p["cidades"])
-    itens += " &#9679; SIGA @PREVISAORJ"
+    itens += " &#9679; @PREVISAORJ"
     return (f'<div class="tk-faixa"><div class="tk-rot">RIO</div><div class="tk-janela">'
             f'<div id="tk-trilho">{itens} &#9679; {itens}</div></div></div>')
 
@@ -555,8 +555,6 @@ html, body {{ width: 1080px; height: 1920px; overflow: hidden; background: {NAVY
 
  <div id="legenda" class="clip" data-start="0" data-duration="{dur}" data-track-index="6">{legenda_html(p)}</div>
 
- <div id="follow-slot" data-composition-id="instagram-follow" data-composition-src="compositions/instagram-follow.html"
-      data-start="{t_siga}" data-duration="{dur_follow}" data-width="1080" data-height="1920" data-track-index="7"></div>
 
  <div id="grao" class="clip" data-start="0" data-duration="{dur}" data-track-index="8"></div>
  <div id="vinheta" class="clip" data-start="0" data-duration="{dur}" data-track-index="9"></div>

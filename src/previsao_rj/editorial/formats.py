@@ -108,7 +108,7 @@ def rio_antes_de_sair(snapshot, incerto):
             f"Atenção ao vento: rajadas de até {alta['value']:g} quilômetros por hora "
             f"{em_local(alta['name'])}.",
             'alerta', titulo='VENTO', detalhe=f"até {alta['value']:g} km/h {em_local(alta['name'])}"))
-    batidas.append(batida('Confira a atualização antes de sair. Previsão RJ.', 'cta'))
+    batidas.append(batida('Manda pra quem sai cedo no Rio hoje.', 'cta'))
     return batidas
 
 
@@ -164,7 +164,7 @@ def amanha_no_rio(snapshot, incerto):
             f"{em_local(alta['name'])}.",
             'alerta', titulo='VENTO AMANHÃ',
             detalhe=f"até {alta['value']:g} km/h {em_local(alta['name'])}"))
-    batidas.append(batida('Amanhã cedo tem atualização. Previsão RJ.', 'cta'))
+    batidas.append(batida('Manda pra quem vai sair amanhã no Rio.', 'cta'))
     return batidas
 
 
@@ -268,7 +268,8 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None, 
         lines.append('A previsão do tempo não determina segurança para banho. Confira a sinalização e os avisos locais.')
     if not lines: raise ValueError('Nenhuma fala sustentada pelos dados')
     if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
-    lines.append('Previsão RJ. Confira a atualização antes de sair.')
+    destinatario = {'vai_dar_praia': 'vai à praia', 'fim_de_semana': 'vai passear no fim de semana'}.get(format, 'vai sair no Rio')
+    lines.append(f'Manda pra quem {destinatario}.')
     beats=[batida(line[0], legenda=line[1]) if isinstance(line, tuple) else batida(line) for line in lines]
     # Todo Reel mostra as seis previsões obrigatórias, antes do fecho.
     resumos = []

@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 def test_original_voice_presets():
-    assert PRESETS['ranzinza'] == dict(voice='pm_alex', pitch=.88, speed=.95, gap=.30)
-    assert PRESETS['maria'] == dict(voice='pf_dora', pitch=.94, speed=.95, gap=.30)
+    assert PRESETS['ranzinza'] == dict(voice='pm_santa:0.75+pm_alex:0.25', pitch=.88, speed=.95, gap=.30)
+    assert PRESETS['maria'] == dict(voice='pf_dora:0.72+bf_emma:0.28', pitch=.94, speed=.95, gap=.30)
     assert 'atempo=1.13636' in FILTER.format(pitch=.88, inv=1/.88)
 
 
