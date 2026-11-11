@@ -52295,7 +52295,7 @@
     "vetoes": [
       "balneabilidade_oficial_indisponivel"
     ],
-    "status": "blocked",
+    "status": "expired",
     "confidence": 50.7,
     "language": "forecast"
   },
@@ -52532,7 +52532,7 @@
     "created_at": "2026-11-11T17:20:08.033917-03:00",
     "expires_at": "2026-11-11T19:20:07-03:00",
     "vetoes": [],
-    "status": "ready",
+    "status": "expired",
     "confidence": 50.7,
     "language": "forecast"
   },
@@ -52626,7 +52626,7 @@
     "created_at": "2026-11-11T17:20:08.033917-03:00",
     "expires_at": "2026-11-11T19:20:07-03:00",
     "vetoes": [],
-    "status": "ready",
+    "status": "expired",
     "confidence": 50.7,
     "language": "forecast"
   },
@@ -52719,12 +52719,15 @@
     "character": "bia",
     "hook_key": "9fcb2b894fde0422eb94",
     "dedupe_key": "d8bc4f1c5bc3129493a41cbc120fa45b4c13a4638d8865c63a2ca02937f77c3d",
-    "created_at": "2026-11-11T19:18:41.039450-03:00",
-    "expires_at": "2026-11-11T21:18:40-03:00",
+    "created_at": "2026-11-11T20:05:50.248659-03:00",
+    "expires_at": "2026-11-11T22:05:49-03:00",
     "vetoes": [],
-    "status": "ready",
-    "confidence": 48.2,
-    "language": "probabilistic"
+    "status": "published",
+    "confidence": 46.1,
+    "language": "probabilistic",
+    "claimed_at": "2026-11-11T20:09:02-03:00",
+    "published_at": "2026-11-11T20:09:42-03:00",
+    "media_id": "17901080658395591"
   },
   {
     "format": "vai_dar_praia",
@@ -52765,13 +52768,13 @@
     "character": "bira",
     "hook_key": "3103164f44818b049fe4",
     "dedupe_key": "c4a3fb945e7ad522082e7c313bb0df820c840e8abd5e17dc31dc725b6c45342d",
-    "created_at": "2026-11-11T19:18:41.039450-03:00",
-    "expires_at": "2026-11-11T21:18:40-03:00",
+    "created_at": "2026-11-11T20:05:50.248659-03:00",
+    "expires_at": "2026-11-11T22:05:49-03:00",
     "vetoes": [
       "balneabilidade_oficial_indisponivel"
     ],
     "status": "blocked",
-    "confidence": 48.2,
+    "confidence": 46.1,
     "language": "probabilistic"
   },
   {
@@ -53004,11 +53007,11 @@
     "character": "bira",
     "hook_key": "2b74d9ab5e9d257666c4",
     "dedupe_key": "d23595d3a3ab7e246d34b75e69c062709840334b5b5ccd52a48f1c5ecae185cb",
-    "created_at": "2026-11-11T19:18:41.039450-03:00",
-    "expires_at": "2026-11-11T21:18:40-03:00",
+    "created_at": "2026-11-11T20:05:50.248659-03:00",
+    "expires_at": "2026-11-11T22:05:49-03:00",
     "vetoes": [],
     "status": "ready",
-    "confidence": 48.2,
+    "confidence": 46.1,
     "language": "probabilistic"
   },
   {
@@ -53098,11 +53101,11 @@
     "character": "bira",
     "hook_key": "10afe9149e747df0c5b2",
     "dedupe_key": "b7409a075cfa58126dc2fe13b19cafbb3a41cf3fbf4f012728433a7f2018d5ff",
-    "created_at": "2026-11-11T19:18:41.039450-03:00",
-    "expires_at": "2026-11-11T21:18:40-03:00",
+    "created_at": "2026-11-11T20:05:50.248659-03:00",
+    "expires_at": "2026-11-11T22:05:49-03:00",
     "vetoes": [],
     "status": "ready",
-    "confidence": 48.2,
+    "confidence": 46.1,
     "language": "probabilistic"
   }
 ]
