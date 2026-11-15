@@ -19,6 +19,7 @@ from typing import Any
 from ..geo.preposicao import em_local
 
 ASSINATURA = '@previsaorj — O tempo do Rio para decidir seu dia.'
+FONTE = '📊 Fonte dos dados: MET Norway (met.no)'
 
 HASHTAGS = {
     'rio_antes_de_sair': '#PrevisaoRJ #RioDeJaneiro #TempoRJ',
@@ -265,6 +266,7 @@ def _legenda_antiga(snapshot: dict) -> str:
             f"☔ {wet['name']}: maior chance de chuva da amostra, "
             f"{wet.get('rain_probability_pct', 0)}%\n\n"
             "Confira a atualização antes de sair.\n\n"
+            f"{FONTE}\n\n"
             f"{ASSINATURA}\n\n"
             f"{HASHTAGS_PADRAO}")
 
@@ -295,6 +297,8 @@ def build_caption(snapshot: dict, item: dict | None = None) -> str:
               '\n'.join(linhas),
               '',
               FECHO.get(formato, FECHO['rio_antes_de_sair']),
+              '',
+              FONTE,
               '',
               ASSINATURA,
               '',
