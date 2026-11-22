@@ -69,13 +69,19 @@ def test_abre_sem_cartao_para_o_apresentador_existir(snapshot):
     assert any(b['tipo'] not in LAY.SOZINHOS for b in saida)
 
 
-def test_incerteza_vem_antes_de_qualquer_numero(snapshot):
+def test_aviso_generico_de_incerteza_nao_entra_na_abertura(snapshot):
+    # Mesmo com baixa confianca, nao transformar toda previsao num aviso
+    # generico. O motor ainda aplica os vetos e a linguagem probabilistica.
     snapshot['confidence'] = {'score': 40, 'band': 'baixa'}
-    saida = batidas(snapshot)
-    avisos = [i for i, b in enumerate(saida) if 'incerteza' in b['fala']]
-    numeros = [i for i, b in enumerate(saida) if b['tipo'] == 'gancho']
-    if avisos:
-        assert avisos[0] < numeros[0]
+    for formato in ('rio_antes_de_sair', 'amanha_no_rio'):
+        saida = prepare(snapshot, formato)['beats']
+        falas = ' '.join(b['fala'].lower() for b in saida)
+        assert 'cenario ainda tem incerteza' not in falas
+        assert 'cenário ainda tem incerteza' not in falas
+        assert 'cenário para amanhã ainda tem incerteza' not in falas
+        assert 'pode mudar até de manhã' not in falas
+        assert saida[0]['tipo'] == 'nenhum'
+        assert any(b['tipo'] == 'gancho' for b in saida)
 
 
 def test_roteiro_cabe_no_portao_de_qa(snapshot):
