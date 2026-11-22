@@ -73,11 +73,8 @@ def rio_antes_de_sair(snapshot, incerto):
     contraste = regional_contrast(locs)
     # Abre SEM cartao de proposito. Gancho, resumo e CTA sao altos e tiram o
     # apresentador de cena; se todas as batidas fossem dessas, a locucao inteira
-    # sairia sobre um cenario vazio. A abertura e o aviso de incerteza sao as
-    # batidas em que ele aparece.
+    # sairia sobre um cenario vazio. A abertura mostra o apresentador.
     batidas = [batida('Veja a previsão do Rio para hoje.')]
-    if incerto:
-        batidas.append(batida('O cenário ainda tem incerteza. Há possibilidade de mudança.'))
     destaque = gancho_destaque(snapshot, locs, 'hoje')
     if destaque is not None:
         batidas.append(destaque)
@@ -128,8 +125,6 @@ def amanha_no_rio(snapshot, incerto):
     chuvas = [e for e in locs if number(e.get('rain_probability_pct'))]
     contraste = regional_contrast(locs)
     batidas = [batida('Amanhã, o tempo no Rio fica assim.')]
-    if incerto:
-        batidas.append(batida('O cenário para amanhã ainda tem incerteza. Pode mudar até de manhã.'))
     destaque = gancho_destaque(snapshot, locs, 'amanha')
     if destaque is not None:
         batidas.append(destaque)
@@ -267,7 +262,8 @@ def prepare(snapshot, format='rio_antes_de_sair', reference=None, history=None, 
             lines.append(f"{em_local(loc['name'], inicio=True)}, ondas modeladas de até {wave:g} metros. O boletim oficial informa: {report.get('classification','não informada')}.")
         lines.append('A previsão do tempo não determina segurança para banho. Confira a sinalização e os avisos locais.')
     if not lines: raise ValueError('Nenhuma fala sustentada pelos dados')
-    if candidate['language']=='probabilistic': lines.insert(0,'O cenário ainda tem incerteza. Há possibilidade de mudança.')
+    # A confiança dos dados controla os vetos e a linguagem no motor editorial;
+    # não acrescentar aviso genérico de incerteza à abertura do vídeo.
     destinatario = {'vai_dar_praia': 'vai à praia', 'fim_de_semana': 'vai passear no fim de semana'}.get(format, 'vai sair no Rio')
     lines.append(f'Manda pra quem {destinatario}.')
     beats=[batida(line[0], legenda=line[1]) if isinstance(line, tuple) else batida(line) for line in lines]
