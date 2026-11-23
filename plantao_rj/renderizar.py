@@ -56,9 +56,9 @@ def roteiro(rel,e):
         url="https://open-meteo.com/"
     final="Acompanhe a Defesa Civil. Evite áreas de risco, árvores e vias alagadas. Compartilhe este aviso."
     linhas=[abertura,detalhe,final]
-    legenda=("PLANTÃO METEOROLÓGICO — PREVISÃO RJ\\n\\n"+
-             "\\n\\n".join(linhas)+f"\\n\\nFonte: {fonte} — {url}"+
-             f"\\nConsulta: {rel['emitido_em']}\\n@previsaorj #AlertaMeteorologico")
+    legenda=("PLANTÃO METEOROLÓGICO — PREVISÃO RJ\n\n"+
+             "\n\n".join(linhas)+f"\n\nFonte: {fonte} — {url}"+
+             f"\nConsulta: {rel['emitido_em']}\n@previsaorj #AlertaMeteorologico")
     return linhas,legenda,fonte
 
 def reduzir(d,texto,largura,max_font=88,min_font=35):
@@ -117,7 +117,7 @@ def sintetizar(linhas):
     k=Kokoro(model,voices)
     full=[];dur=[]
     for i,txt in enumerate(linhas):
-        txt=re.sub(r"\\b(\\d{1,2}):(\\d{2})\\b",r"\\1 horas e \\2 minutos",txt)
+        txt=re.sub(r"\b(\d{1,2}):(\d{2})\b",r"\1 horas e \2 minutos",txt)
         samples,sr=k.create(txt,voice="pf_dora",speed=1.01,lang="pt-br")
         wave=np.asarray(samples,dtype=np.float32)
         if sr!=24000:
@@ -153,9 +153,9 @@ def main():
     concat=OUT/"cenas.txt"
     with concat.open("w") as f:
         for p,d in zip(imgs,dur):
-            f.write("file '"+p.name+"'\\n")
-            f.write("duration "+str(round(d,3))+"\\n")
-        f.write("file '"+imgs[-1].name+"'\\n")
+            f.write("file '"+p.name+"'\n")
+            f.write("duration "+str(round(d,3))+"\n")
+        f.write("file '"+imgs[-1].name+"'\n")
     subprocess.run(["ffmpeg","-y","-v","error","-f","concat","-safe","0",
         "-i",str(concat),"-i",str(OUT/"narracao.wav"),"-shortest",
         "-vf","fps=30,format=yuv420p","-c:v","libx264","-profile:v","main",
