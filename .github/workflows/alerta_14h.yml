@@ -1,7 +1,6 @@
 name: Alerta severo RJ — 11h BRT
 on:
-  schedule:
-    - cron: '0 14 * * *'
+  # Agendamento desativado: substituído pelo plantão independente.
   workflow_dispatch:
     inputs:
       dry_run:
