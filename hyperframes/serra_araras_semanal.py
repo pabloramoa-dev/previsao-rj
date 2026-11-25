@@ -106,6 +106,43 @@ def collect():
     report={"rows":rows,"source":url,"published":str(pub),"checked":NOW.isoformat(),"evidence":evidence}
     (OUT/"consulta.json").write_text(json.dumps(report,ensure_ascii=False,indent=2))
     return report
+def capa_transito(report):
+    """Capa independente, com texto na área central segura da grade."""
+    from PIL import Image, ImageDraw, ImageFont
+    im=Image.new("RGB",(1080,1920),"#10202D")
+    draw=ImageDraw.Draw(im)
+    def center(s,y,size,color,bold=True):
+        name="DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+        f=ImageFont.truetype(name,size)
+        while draw.textlength(s,font=f)>900 and size>20:
+            size-=2; f=ImageFont.truetype(name,size)
+        draw.text((540,y),s,font=f,fill=color,anchor="mt")
+    for y in (0,1740):
+        draw.rectangle((0,y,1080,y+180),fill="#F7C744")
+        for x in range(-180,1260,180):
+            draw.polygon([(x,y),(x+70,y),(x-110,y+180),(x-180,y+180)],fill="#24313A")
+    draw.rounded_rectangle((60,410,1020,1510),radius=48,fill="#142C3C",outline="#426477",width=4)
+    draw.rounded_rectangle((196,472,884,566),radius=24,fill="#F7C744")
+    center("BOLETIM DE TRÂNSITO",492,43,"#14232D")
+    center("SERRA DAS",628,108,"#FFFFFF")
+    center("ARARAS",748,144,"#FFFFFF")
+    center("VIA DUTRA  •  BR-116",935,49,"#F7C744")
+    draw.line((155,1020,925,1020),fill="#426477",width=3)
+    center("INTERDIÇÕES",1060,76,"#FFFFFF")
+    center("DA SEMANA",1148,76,"#FFFFFF")
+    days=sorted(dt.date.fromisoformat(row[0]) for row in report["rows"])
+    period=days[0].strftime("%d/%m")
+    if days[-1]!=days[0]:
+        period+=" A "+days[-1].strftime("%d/%m")
+    center(period,1265,57,"#F7C744")
+    center("@"+CHANNEL.upper(),1400,35,"#D6E5EC")
+    center("FONTE: RIOSP / MOTIVA",1580,32,"#D6E5EC",False)
+    path=OUT/"CAPA.jpg"
+    im.save(path,"JPEG",quality=95,subsampling=0,optimize=True)
+    if path.stat().st_size<10000:
+        raise RuntimeError("Capa de trânsito inválida")
+    print("Capa de grade exclusiva: Serra das Araras")
+
 def render(report):
     sys.path.insert(0,str(Path(__file__).resolve().parent))
     import gerar_hf as hf
@@ -133,6 +170,7 @@ def render(report):
     out=OUT/"REEL.mp4"
     p,b,s,w=hf.preparar("bira",out)
     hf.renderizar(out,p);hf.entregar("bira",out,p,b,s,w)
+    capa_transito(report)
     caption="Interdições programadas na Serra das Araras – Via Dutra.\n"+"\n".join(f"{dt.date.fromisoformat(d):%d/%m}: {a}h–{b}h, sentido {s}" for d,a,b,s in report["rows"])+"\nFonte: "+report["source"]+"\nSujeito a alterações. Consulte a RioSP antes de viajar. Envie para quem vai dirigir na Via Dutra nessa semana! @"+CHANNEL
     (OUT/"LEGENDA.txt").write_text(caption)
     (OUT/"marker.txt").write_text("#SerraAraras"+hashlib.sha256(json.dumps(report["rows"]).encode()).hexdigest()[:12])
