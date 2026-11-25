@@ -1,0 +1,120 @@
+name: Serra das Araras — boletim semanal oficial
+on:
+  schedule:
+    - cron: '0 11 * * 1'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/serra_araras_semanal.yml']
+  workflow_dispatch:
+    inputs:
+      publicar:
+        type: boolean
+        default: false
+        description: Publicar Reel com cronograma oficial vigente
+permissions:
+  contents: write
+concurrency:
+  group: serra-araras-publicacao
+  cancel-in-progress: false
+jobs:
+  boletim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TZ: America/Sao_Paulo
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_IG_USERNAME: previsaorj
+      TAG: serra-araras-${{ github.run_id }}
+      PREVISAO_RJ_MOTOR: hyperframes
+      PREVISAO_RJ_HORA_ALVO: '8'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Instalar dependências originais e navegador de consulta
+        working-directory: .
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          pip install -r requirements/test.txt -r requirements/characters.txt requests beautifulsoup4 playwright lxml
+          python -m playwright install --with-deps chromium
+          npm ci --prefix video
+          cd video && npx --no-install hyperframes browser ensure
+      - name: Consultar Motiva e renderizar cronograma válido
+        working-directory: .
+        run: |
+          export OUT_DIR="$GITHUB_WORKSPACE/saida"
+          python hyperframes/serra_araras_semanal.py
+          test -s "$OUT_DIR/REEL.mp4"
+          cat "$OUT_DIR/consulta.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Checar validade antes de publicar
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publicar)
+        run: |
+          python - <<'PY'
+          import json,datetime as d
+          from zoneinfo import ZoneInfo
+          r=json.load(open("saida/consulta.json"))
+          now=d.datetime.now(ZoneInfo("America/Sao_Paulo"))
+          assert 0 <= (now-d.datetime.fromisoformat(r["checked"])).total_seconds() < 7200
+          assert all(d.datetime.combine(d.date.fromisoformat(x[0]),d.time(x[1]),now.tzinfo)>now for x in r["rows"])
+          PY
+          test "$(gh repo view "$GITHUB_REPOSITORY" --json visibility -q .visibility)" = PUBLIC
+          gh release create "$TAG" saida/REEL.mp4 saida/CAPA.jpg --target "$GITHUB_SHA" --title "$TAG" --notes "Boletim semanal de trânsito"
+      - name: Publicar Reel na conta verificada
+        id: publicar
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publicar)
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
+        run: |
+          export MEDIA_BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          export MARKER="$(cat saida/marker.txt)"
+          python - <<'PY'
+          import os,time,json
+          from pathlib import Path
+          import requests
+          uid=os.environ["IG_USER_ID"]; token=os.environ["IG_ACCESS_TOKEN"]; expected=os.environ["EXPECTED_IG_USERNAME"]
+          base="https://"+("graph.facebook.com" if token.startswith("EAA") else "graph.instagram.com")+"/"+(os.environ.get("META_GRAPH_VERSION") or "v26.0")
+          headers={"Authorization":"Bearer "+token}
+          def call(method,path,params):
+              r=requests.request(method,base+"/"+path,headers=headers,timeout=60,**({"params":params} if method=="GET" else {"data":params}))
+              j=r.json()
+              if not r.ok or "error" in j: raise RuntimeError("Meta HTTP "+str(r.status_code)+" code "+str(j.get("error",{}).get("code")))
+              return j
+          assert call("GET",uid,{"fields":"id,username"}).get("username","").casefold()==expected
+          caption=Path("saida/LEGENDA.txt").read_text().strip().replace("@previsaorj","@"+expected)
+          marker=os.environ["MARKER"]
+          caption=caption+"\n"+marker
+          for item in call("GET",uid+"/media",{"fields":"id,caption,permalink","limit":100}).get("data",[]):
+              if marker in (item.get("caption") or ""):
+                  print("Já publicado, media_id:",item["id"]); Path("saida/recibo.json").write_text(json.dumps(item)); break
+          else:
+              url=os.environ["MEDIA_BASE"]
+              cid=call("POST",uid+"/media",{"media_type":"REELS","video_url":url+"/REEL.mp4","cover_url":url+"/CAPA.jpg","caption":caption,"share_to_feed":"true"})["id"]
+              for _ in range(75):
+                  status=call("GET",cid,{"fields":"status_code"}).get("status_code")
+                  if status=="FINISHED":break
+                  if status in ("ERROR","EXPIRED"):raise RuntimeError("Container "+status)
+                  time.sleep(5)
+              else:raise TimeoutError("Container não concluído")
+              result=call("POST",uid+"/media_publish",{"creation_id":cid})
+              assert result.get("id")
+              Path("saida/recibo.json").write_text(json.dumps(result))
+              print("Publicado media_id:",result["id"])
+          
+          PY
+      - name: Limpar mídia temporária após confirmação
+        if: steps.publicar.outcome == 'success'
+        run: gh release delete "$TAG" --cleanup-tag --yes
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: serra-araras-semanal
+          path: saida/
+          if-no-files-found: warn
+          retention-days: 3
