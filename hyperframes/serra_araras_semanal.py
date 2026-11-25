@@ -69,25 +69,40 @@ def collect():
             if not TODAY-dt.timedelta(days=10)<=pub<=TODAY:continue
             if not re.search(r"interdi|desmont|detona|bloque|fechamento|vigas|manutenc",nt):continue
             evidence.append({"url":u,"title":title,"date":str(pub)})
-            # Aceita somente a estrutura explícita do comunicado semanal de desmontes.
-            if not ("desmont" in nt or "detona" in nt) or "pista sul (sentido sao paulo)" not in n or not re.search(r"sentido rio de janeiro.{0,55}(normalmente|normal)",n) or re.search(r"cancelad|suspens|sem interdi",n):
+            # Datas e horários explícitos; não inferir sentido em notícia excepcional.
+            default_sp=("desmont" in nt or "detona" in nt) and "pista sul (sentido sao paulo)" in n and bool(re.search(r"sentido rio de janeiro.{0,55}(normalmente|normal)",n))
+            if re.search(r"cancelad|suspens|sem interdi",n):
                 unresolved.append(u);continue
             rows=[]
-            for d,mo,a,b in re.findall(r"\((\d{1,2})/(\d{1,2})(?:/\d{4})?\)\s*[:,]?\s*das\s+(\d{1,2})h\s+[àa]s\s+(\d{1,2})h\b",t,re.I):
+            candidates=[x.get_text(" ",strip=True) for x in s.select("li, tr, p")]
+            if default_sp:
+                candidates += re.findall(r"\(\d{1,2}/\d{1,2}(?:/\d{4})?\)\s*[:,]?\s*das\s+\d{1,2}h\s+[àa]s\s+\d{1,2}h\b",t,re.I)
+            for line in candidates:
+                q=norm(line)
+                if len(q)>400:continue
+                dates=re.findall(r"(?<!\d)(\d{1,2})/(\d{1,2})(?:/\d{4})?(?!\d)",q)
+                hours=re.findall(r"(?<!\d)(\d{1,2})h\s*(?:as|a|[-–])\s*(\d{1,2})h(?!\d)",q)
+                if len(dates)!=1 or len(hours)!=1:continue
+                if re.search(r"ambos os sentidos|dois sentidos|nos dois sentidos|pistas norte e sul",q):sentido="Ambos os sentidos"
+                elif re.search(r"sentido (sao paulo|sp)\b|pista sul",q):sentido="São Paulo"
+                elif re.search(r"sentido (rio de janeiro|rio|rj)\b|pista norte",q):sentido="Rio de Janeiro"
+                elif default_sp:sentido="São Paulo"
+                else:continue
+                d,mo=dates[0];a,b=map(int,hours[0])
                 year=pub.year+(int(mo)<pub.month and pub.month==12)
                 day=dt.date(year,int(mo),int(d))
-                if not 0<=int(a)<int(b)<=23:raise ValueError("Horário inválido")
-                if TODAY<=day<=TODAY+dt.timedelta(days=6) and dt.datetime.combine(day,dt.time(int(a)),TZ)>NOW:
-                    rows.append((str(day),int(a),int(b),"São Paulo"))
+                if not 0<=a<b<=23:raise ValueError("Horário inválido")
+                if TODAY<=day<=TODAY+dt.timedelta(days=6) and dt.datetime.combine(day,dt.time(a),TZ)>NOW:
+                    rows.append((str(day),a,b,sentido))
             if rows:found.append((pub,u,sorted(set(rows))))
-            elif not re.search(r"\(\d{1,2}/\d{1,2}\)",t):unresolved.append(u)
+            elif not default_sp or not re.search(r"\(\d{1,2}/\d{1,2}\)",t):unresolved.append(u)
         except Exception as e:
             print("Falha de leitura",u,type(e).__name__);unresolved.append(u)
     if unresolved:raise RuntimeError("Comunicado recente não interpretável; revisão necessária: "+str(unresolved))
     if not found:raise RuntimeError("Sem cronograma oficial vigente e verificável")
     found.sort(reverse=True)
     pub,url,rows=found[0]
-    if any(other!=rows for _,_,other in found[1:]):raise RuntimeError("Comunicados divergentes; revisar")
+    if any(other!=rows for _,_,other in found[1:]):raise RuntimeError("Comunicados divergentes; revisar antes de publicar")
     report={"rows":rows,"source":url,"published":str(pub),"checked":NOW.isoformat(),"evidence":evidence}
     (OUT/"consulta.json").write_text(json.dumps(report,ensure_ascii=False,indent=2))
     return report
@@ -99,7 +114,7 @@ def render(report):
     beats=[beat("Vai pegar a Dutra? Confira as interdições na Serra das Araras.")]
     for iso,a,b,sentido in report["rows"]:
         d=dt.date.fromisoformat(iso); data=d.strftime("%d/%m")
-        beats.append(beat(f"Dia {d.day} do mês {d.month}, das {a} às {b} horas, sentido {sentido}.","alerta",titulo=data+" · "+hf.DIAS[d.weekday()],detalhe=f"{a}h–{b}h | SENTIDO SP"))
+        beats.append(beat(f"Dia {d.day} do mês {d.month}, das {a} às {b} horas, sentido {sentido}.","alerta",titulo=data+" · "+hf.DIAS[d.weekday()],detalhe=f"{a}h–{b}h | {sentido.upper()}"))
     beats.append(beat("Consulte a RioSP antes de viajar. Compartilhe este aviso!","cta",chamada="COMPARTILHE O AVISO",sub="Fonte: RioSP/Motiva · "+report["published"]))
     hf.demo_batidas=lambda p:({"forecast":{"today":{"date":str(TODAY),"locations":[]}}},"transito_serra_araras",beats)
     c.TITULOS["transito_serra_araras"]="DUTRA: SERRA DAS ARARAS"
@@ -111,7 +126,7 @@ def render(report):
     c.ticker=ticker
     original=c.compor
     brand="PREVISÃO SUL FLUMINENSE" if CHANNEL=="previsaosulflu" else "PREVISÃO RJ"
-    c.compor=lambda p:original(p).replace("PREVISÃO DAS 6H","BOLETIM DE TRÂNSITO").replace("PREVISÃO RJ",brand).replace("@previsaorj","@"+CHANNEL).replace("@PREVISAORJ","@"+CHANNEL.upper())
+    c.compor=lambda p:original(p).replace("PREVISÃO DAS 8H","BOLETIM DE TRÂNSITO").replace("PREVISÃO DAS 6H","BOLETIM DE TRÂNSITO").replace("PREVISÃO RJ",brand).replace("@previsaorj","@"+CHANNEL).replace("@PREVISAORJ","@"+CHANNEL.upper())
     if CHANNEL=="previsaosulflu":
         f=Path(hf.AQUI)/"compositions/instagram-follow.html"
         f.write_text(f.read_text().replace("previsaorj",CHANNEL).replace("PREVISAORJ",CHANNEL.upper()).replace("Previsão RJ","Previsão Sul Fluminense"))
