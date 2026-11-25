@@ -115,7 +115,7 @@ def render(report):
     for iso,a,b,sentido in report["rows"]:
         d=dt.date.fromisoformat(iso); data=d.strftime("%d/%m")
         beats.append(beat(f"Dia {d.day} do mês {d.month}, das {a} às {b} horas, sentido {sentido}.","alerta",titulo=data+" · "+hf.DIAS[d.weekday()],detalhe=f"{a}h–{b}h | {sentido.upper()}"))
-    beats.append(beat("Consulte a RioSP antes de viajar. Compartilhe este aviso!","cta",chamada="COMPARTILHE O AVISO",sub="Fonte: RioSP/Motiva · "+report["published"]))
+    beats.append(beat("Consulte a RioSP antes de viajar. Envie para quem vai dirigir na Via Dutra nessa semana!","cta",chamada="ENVIE PARA QUEM VAI DIRIGIR NA VIA DUTRA NESSA SEMANA",sub="Fonte: RioSP/Motiva · "+report["published"]))
     hf.demo_batidas=lambda p:({"forecast":{"today":{"date":str(TODAY),"locations":[]}}},"transito_serra_araras",beats)
     c.TITULOS["transito_serra_araras"]="DUTRA: SERRA DAS ARARAS"
     c.APRESENTADOR["bira"]["cargo"]="BOLETIM DE TRÂNSITO"
@@ -133,7 +133,7 @@ def render(report):
     out=OUT/"REEL.mp4"
     p,b,s,w=hf.preparar("bira",out)
     hf.renderizar(out,p);hf.entregar("bira",out,p,b,s,w)
-    caption="Interdições programadas na Serra das Araras – Via Dutra.\n"+"\n".join(f"{dt.date.fromisoformat(d):%d/%m}: {a}h–{b}h, sentido {s}" for d,a,b,s in report["rows"])+"\nFonte: "+report["source"]+"\nSujeito a alterações. Consulte a RioSP antes de viajar. @"+CHANNEL
+    caption="Interdições programadas na Serra das Araras – Via Dutra.\n"+"\n".join(f"{dt.date.fromisoformat(d):%d/%m}: {a}h–{b}h, sentido {s}" for d,a,b,s in report["rows"])+"\nFonte: "+report["source"]+"\nSujeito a alterações. Consulte a RioSP antes de viajar. Envie para quem vai dirigir na Via Dutra nessa semana! @"+CHANNEL
     (OUT/"LEGENDA.txt").write_text(caption)
     (OUT/"marker.txt").write_text("#SerraAraras"+hashlib.sha256(json.dumps(report["rows"]).encode()).hexdigest()[:12])
 if __name__=="__main__":
