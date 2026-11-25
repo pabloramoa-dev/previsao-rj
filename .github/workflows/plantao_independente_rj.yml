@@ -1,7 +1,7 @@
-name: Plantão independente RJ — 11h, tempo severo
+name: Plantão independente RJ — 10h00, tempo severo
 on:
   schedule:
-    - cron: '0 14 * * *'
+    - cron: '0 13 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
