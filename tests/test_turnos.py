@@ -60,7 +60,7 @@ def test_roteiro_de_amanha_le_o_bloco_de_amanha(snapshot):
     for loc in amanha:
         loc['max_c'] = 40.0
     beats = prepare(snapshot, 'amanha_no_rio')['beats']
-    assert beats[0]['tipo'] == 'nenhum' and 'Amanhã' in beats[0]['fala']
+    assert beats[0]['tipo'] == 'nenhum' and 'amanhã' in beats[0]['fala'].lower()
     assert beats[-1]['tipo'] == 'cta'
     resumo = [b for b in beats if b['tipo'] == 'resumo']
     assert len(resumo) == 1
@@ -227,3 +227,24 @@ def test_workflow_prepara_antes_e_publica_na_hora(caminho, alvo):
     for passo in wf['jobs']['trava']['steps'] + wf['jobs']['reel']['steps']:
         if passo.get('uses', '').startswith('actions/checkout'):
             assert passo['with']['ref'] == '${{ github.ref_name }}'
+
+
+def test_rodizio_de_retencao_e_engajamento():
+    from datetime import date, timedelta
+    from src.previsao_rj.editorial.formats import gancho_rotativo, engajamento_rotativo
+    pontos = [{'name': 'Cidade A', 'min_c': 15, 'max_c': 27},
+              {'name': 'Cidade B', 'min_c': 20, 'max_c': 33}]
+    ganchos, ctas = set(), set()
+    for i in range(28):
+        pub = date(2026, 11, 1) + timedelta(days=i // 2)
+        quando = 'amanhã' if i % 2 else 'hoje'
+        alvo = pub + timedelta(days=i % 2)
+        fala = gancho_rotativo(pontos, alvo, quando, canal='teste')
+        assert quando in fala.lower() and len(fala.split()) <= 12
+        assert 'Cidade A' in fala or 'Cidade B' in fala
+        assert not any(x in fala.lower() for x in ('alerta', 'rajada', 'chuva forte'))
+        assert fala == gancho_rotativo(pontos, alvo, quando, canal='teste')
+        ganchos.add(fala)
+        ctas.add(engajamento_rotativo(alvo, quando, canal='teste'))
+    assert len(ganchos) >= 12
+    assert len(ctas) >= 8
