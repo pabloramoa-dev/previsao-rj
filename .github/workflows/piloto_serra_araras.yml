@@ -1,0 +1,38 @@
+name: Piloto Serra das Araras (sem publicar)
+on:
+  push:
+    branches: [piloto/serra-araras-20261125]
+    paths:
+      - '.github/workflows/piloto_serra_araras.yml'
+      - 'hyperframes/piloto_serra_araras.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: America/Sao_Paulo
+      PUBLICAR: 'false'
+      PREVISAO_RJ_MOTOR: hyperframes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-hyperframes
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependências originais
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg espeak-ng libpango1.0-dev libcairo2-dev pkg-config
+          pip install -r requirements/test.txt -r requirements/characters.txt
+      - name: Renderizar Bira com Kokoro e HyperFrames
+        run: python hyperframes/piloto_serra_araras.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: piloto-serra-araras
+          path: output/serra_araras/
+          if-no-files-found: error
+          retention-days: 3
