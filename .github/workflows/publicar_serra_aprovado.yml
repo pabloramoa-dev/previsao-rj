@@ -1,0 +1,83 @@
+name: Publicar piloto aprovado Serra das Araras
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publicar_serra_aprovado.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: serra-araras-publicacao
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MEDIA_BASE: https://github.com/pabloramoa-dev/previsao-rj/releases/download/serra-araras-aprovado-20261125
+      MARKER: '#SerraAraras25112026'
+      EXPECTED_IG_USERNAME: previsaorj
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Impedir publicação de agenda vencida
+        run: test "$(TZ=America/Sao_Paulo date +%F)" = "2026-11-25"
+      - name: Recuperar exatamente o vídeo aprovado
+        run: |
+          mkdir -p saida
+          gh run download 45586116834 --repo pabloramoa-dev/previsao-rj --name piloto-serra-araras --dir saida
+          test -s saida/REEL.mp4 && test -s saida/CAPA.jpg && test -s saida/LEGENDA.txt
+          if ! gh release view serra-araras-aprovado-20261125 >/dev/null 2>&1; then
+            gh release create serra-araras-aprovado-20261125 saida/REEL.mp4 saida/CAPA.jpg saida/LEGENDA.txt --target "$GITHUB_SHA" --title "Serra das Araras — piloto aprovado" --notes "Mídia temporária compartilhada com SulFlu"
+          fi
+      - name: Publicar Reel na conta correta
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v26.0' }}
+        run: |
+          pip install requests
+          python - <<'PY'
+          import os,time,json
+          from pathlib import Path
+          import requests
+          uid=os.environ["IG_USER_ID"]; token=os.environ["IG_ACCESS_TOKEN"]; expected=os.environ["EXPECTED_IG_USERNAME"]
+          base="https://"+("graph.facebook.com" if token.startswith("EAA") else "graph.instagram.com")+"/"+(os.environ.get("META_GRAPH_VERSION") or "v26.0")
+          headers={"Authorization":"Bearer "+token}
+          def call(method,path,params):
+              r=requests.request(method,base+"/"+path,headers=headers,timeout=60,**({"params":params} if method=="GET" else {"data":params}))
+              j=r.json()
+              if not r.ok or "error" in j: raise RuntimeError("Meta HTTP "+str(r.status_code)+" code "+str(j.get("error",{}).get("code")))
+              return j
+          assert call("GET",uid,{"fields":"id,username"}).get("username","").casefold()==expected
+          caption=Path("saida/LEGENDA.txt").read_text().strip().replace("@previsaorj","@"+expected)
+          marker=os.environ["MARKER"]
+          caption=caption+"\n"+marker
+          for item in call("GET",uid+"/media",{"fields":"id,caption,permalink","limit":100}).get("data",[]):
+              if marker in (item.get("caption") or ""):
+                  print("Já publicado, media_id:",item["id"]); Path("saida/recibo.json").write_text(json.dumps(item)); break
+          else:
+              url=os.environ["MEDIA_BASE"]
+              cid=call("POST",uid+"/media",{"media_type":"REELS","video_url":url+"/REEL.mp4","cover_url":url+"/CAPA.jpg","caption":caption,"share_to_feed":"true"})["id"]
+              for _ in range(75):
+                  status=call("GET",cid,{"fields":"status_code"}).get("status_code")
+                  if status=="FINISHED":break
+                  if status in ("ERROR","EXPIRED"):raise RuntimeError("Container "+status)
+                  time.sleep(5)
+              else:raise TimeoutError("Container não concluído")
+              result=call("POST",uid+"/media_publish",{"creation_id":cid})
+              assert result.get("id")
+              Path("saida/recibo.json").write_text(json.dumps(result))
+              print("Publicado media_id:",result["id"])
+          
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recibo-serra-araras
+          path: saida/recibo.json
+          if-no-files-found: warn
+          retention-days: 14
