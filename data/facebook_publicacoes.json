@@ -1,0 +1,12 @@
+{
+  "pabloramoa-dev/previsao-rj|facebook|1370804469458991|reel|d40167800c47e8263e006be790d7a1e62931a287a4f255d793e26754e357629c": {
+    "attempts": 1,
+    "caption_sha": "32295ffd5deb4bdd",
+    "error": "confirmação: ID/PARÂMETRO: HTTP 400 code=100 sub=33 GraphMethodException: Unsupported get request. Object with ID '1715004463481529' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api",
+    "page": "Previsão RJ",
+    "status": "unknown",
+    "updated_at": "2026-11-26T18:01:21-03:00",
+    "video_id": "1715004463481529",
+    "video_url": "https://github.com/pabloramoa-dev/previsao-rj/releases/download/reel-noite-45889673091/REEL.mp4"
+  }
+}
