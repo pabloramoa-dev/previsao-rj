@@ -13,6 +13,36 @@ TITLES = {'rio_antes_de_sair': 'RIO ANTES DE SAIR', 'chove_onde': 'O TEMPO MUDA 
 
 
 
+def abertura_chuva_24h(bloco, quando):
+    """Prioridade editorial obrigatória: acumulado previsto no dia local >= 50 mm."""
+    from math import isfinite
+    locais = list(bloco.get('locations') or [])
+    scan = (bloco.get('rain_scan_rs') or {})
+    locais.extend(scan.get('pontos') or [])
+    if scan.get('ponto'):
+        locais.append(scan['ponto'])
+    afetados = {}
+    for local in locais:
+        mm = local.get('rain_mm')
+        nome = local.get('name')
+        if nome and isinstance(mm, (int, float)) and not isinstance(mm, bool) and isfinite(mm) and mm >= 50:
+            afetados[nome] = max(mm, afetados.get(nome, 0))
+    if not afetados:
+        return None
+    ordem = sorted(afetados, key=lambda nome: (-afetados[nome], nome))
+    pico = afetados[ordem[0]]
+    volume = f'{pico:g}'.replace('.', ',')
+    nomes = ', '.join(ordem[:3])
+    if len(ordem) > 3:
+        nomes += ' e outras localidades'
+    fala = (f'Se você mora em {nomes}, preste atenção! '
+            f'Grande volume de chuva previsto {quando}: até {volume} milímetros em 24 horas, '
+            f'com risco de alagamentos.')
+    return batida(fala, 'gancho', numero=f'{volume} mm',
+                  sub='GRANDE VOLUME DE CHUVA · 24H', local=ordem[0],
+                  destaque_local=True, alerta_chuva_24h=True, localidades=ordem)
+
+
 def gancho_rotativo(locs, data, quando, *, ancora=None, canal=""):
     """Gancho de retenção por edição, com fatos validados e sem alarmismo."""
     from datetime import date, timedelta
@@ -160,7 +190,7 @@ def rio_antes_de_sair(snapshot, incerto):
     # Abre SEM cartao de proposito. Gancho, resumo e CTA sao altos e tiram o
     # apresentador de cena; se todas as batidas fossem dessas, a locucao inteira
     # sairia sobre um cenario vazio. A abertura mostra o apresentador.
-    batidas = [batida(gancho_rotativo(locs, snapshot['forecast']['today'].get('date'), 'hoje', ancora=destaque_da_semana(snapshot, locs), canal="previsao-rj"))]
+    batidas = [abertura_chuva_24h(snapshot['forecast']['today'], 'hoje') or batida(gancho_rotativo(locs, snapshot['forecast']['today'].get('date'), 'hoje', ancora=destaque_da_semana(snapshot, locs), canal="previsao-rj"))]
     destaque = gancho_destaque(snapshot, locs, 'hoje')
     if destaque is not None:
         batidas.append(destaque)
@@ -210,7 +240,7 @@ def amanha_no_rio(snapshot, incerto):
     quente = max(temps, key=lambda e: e['max_c'])
     chuvas = [e for e in locs if number(e.get('rain_probability_pct'))]
     contraste = regional_contrast(locs)
-    batidas = [batida(gancho_rotativo(locs, bloco.get('date'), 'amanhã', ancora=destaque_da_semana(snapshot, locs), canal="previsao-rj"))]
+    batidas = [abertura_chuva_24h(bloco, 'amanhã') or batida(gancho_rotativo(locs, bloco.get('date'), 'amanhã', ancora=destaque_da_semana(snapshot, locs), canal="previsao-rj"))]
     destaque = gancho_destaque(snapshot, locs, 'amanha')
     if destaque is not None:
         batidas.append(destaque)
