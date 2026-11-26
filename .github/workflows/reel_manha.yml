@@ -148,6 +148,9 @@ jobs:
     needs: trava
     if: needs.trava.outputs.pular != 'sim'
     runs-on: ubuntu-latest
+    outputs:
+      video_url: ${{ steps.media.outputs.url }}
+      dedupe_key: ${{ steps.pauta.outputs.dedupe_key }}
     # Até ~5 h de espera quando um cron de reserva dispara na hora.
     timeout-minutes: 350
     env:
@@ -297,6 +300,8 @@ jobs:
           TAG="reel-${{ github.run_id }}"
           ARQS="output/REEL.mp4"
           [ -f output/CAPA.jpg ] && ARQS="$ARQS output/CAPA.jpg"
+          # Legenda junto do MP4: o reenvio só-Facebook usa a mesma.
+          [ -f output/LEGENDA.txt ] && ARQS="$ARQS output/LEGENDA.txt"
           gh release create "$TAG" $ARQS --title "$TAG" --notes "Reel diário @previsaorj"
           echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/REEL.mp4" >> "$GITHUB_OUTPUT"
           if [ -f output/CAPA.jpg ]; then
@@ -355,3 +360,66 @@ jobs:
               echo "apagando release $TAG"
               gh release delete "$TAG" --repo "${{ github.repository }}" --cleanup-tag --yes
             done
+
+  # ------------------------------------------------------------ Facebook
+  # Job SEPARADO do Instagram: falha aqui não desfaz nem repete o Reel do
+  # Instagram, e falha lá não impede o Facebook (o MP4 já está no Release).
+  # Mesmo MP4, nenhum render a mais. Desligar: variable FACEBOOK_PUBLISH_ENABLED.
+  facebook:
+    needs: reel
+    if: ${{ always() && vars.FACEBOOK_PUBLISH_ENABLED == 'true' && needs.reel.outputs.video_url != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: previsao-rj-facebook
+      cancel-in-progress: false
+    env:
+      FACEBOOK_PUBLISH_ENABLED: ${{ vars.FACEBOOK_PUBLISH_ENABLED }}
+      FACEBOOK_REELS_ENABLED: ${{ vars.FACEBOOK_REELS_ENABLED || 'true' }}
+      FACEBOOK_STORIES_ENABLED: ${{ vars.FACEBOOK_STORIES_ENABLED || 'false' }}
+      FACEBOOK_GRAPH_VERSION: ${{ vars.FACEBOOK_GRAPH_VERSION || 'v25.0' }}
+      FACEBOOK_EXPECTED_PAGE: ${{ vars.FACEBOOK_EXPECTED_PAGE || 'Previsão RJ' }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q "requests>=2.32,<3"
+      - uses: actions/download-artifact@v4
+        with:
+          name: previsao-rj-reel-${{ github.run_id }}
+          path: output/
+      - name: Reel no Facebook
+        id: reel_fb
+        continue-on-error: true
+        run: |
+          python -m src.previsao_rj.publish.facebook --kind reel \
+            --video-url "${{ needs.reel.outputs.video_url }}" \
+            --caption-file output/LEGENDA.txt --local-file output/REEL.mp4 \
+            --dedupe-key "${{ needs.reel.outputs.dedupe_key }}"
+      - name: Story no Facebook
+        id: story_fb
+        continue-on-error: true
+        run: |
+          python -m src.previsao_rj.publish.facebook --kind story \
+            --video-url "${{ needs.reel.outputs.video_url }}" \
+            --caption-file output/LEGENDA.txt --local-file output/REEL.mp4 \
+            --dedupe-key "${{ needs.reel.outputs.dedupe_key }}"
+      - name: Persistir o estado do Facebook
+        if: always()
+        run: |
+          set -euo pipefail
+          test -f data/facebook_publicacoes.json || exit 0
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/facebook_publicacoes.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Facebook: estado apos execucao ${{ github.run_id }}"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && break; sleep 5; done
+      - name: Resultado
+        if: always()
+        run: |
+          test "${{ steps.reel_fb.outcome }}" != "failure" || { echo "::error::Reel no Facebook falhou (Instagram não foi afetado). Reenvio: workflow facebook_reenviar.yml"; exit 1; }

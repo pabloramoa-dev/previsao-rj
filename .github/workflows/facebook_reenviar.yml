@@ -1,0 +1,76 @@
+name: Facebook — reenviar só o Facebook
+
+# Reenvia para a Página do Facebook um vídeo que JÁ saiu no Instagram, sem
+# renderizar de novo e sem tocar no Instagram. Use o link do MP4 e a dedupe_key
+# que aparecem no resumo da execução original (o Release dura 7 dias).
+# O estado em data/facebook_publicacoes.json impede publicar duas vezes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "URL do REEL.mp4 no Release (resumo da execução original)"
+        required: true
+      dedupe_key:
+        description: "dedupe_key da execução original"
+        required: true
+      legenda:
+        description: "Legenda (deixe vazio para usar a do Release LEGENDA.txt, se houver)"
+        required: false
+      tipo:
+        type: choice
+        options: [reel, story]
+        default: reel
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previsao-rj-facebook
+  cancel-in-progress: false
+
+jobs:
+  facebook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FACEBOOK_PUBLISH_ENABLED: ${{ vars.FACEBOOK_PUBLISH_ENABLED }}
+      FACEBOOK_REELS_ENABLED: ${{ vars.FACEBOOK_REELS_ENABLED || 'true' }}
+      FACEBOOK_STORIES_ENABLED: ${{ vars.FACEBOOK_STORIES_ENABLED || 'false' }}
+      FACEBOOK_GRAPH_VERSION: ${{ vars.FACEBOOK_GRAPH_VERSION || 'v25.0' }}
+      FACEBOOK_EXPECTED_PAGE: ${{ vars.FACEBOOK_EXPECTED_PAGE || 'Previsão RJ' }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q "requests>=2.32,<3"
+      - name: Legenda
+        env:
+          LEGENDA: ${{ inputs.legenda }}
+          VIDEO_URL: ${{ inputs.video_url }}
+        run: |
+          mkdir -p output
+          if [ -n "$LEGENDA" ]; then printf '%s' "$LEGENDA" > output/LEGENDA.txt; else
+            curl -fsSL "${VIDEO_URL%/REEL.mp4}/LEGENDA.txt" -o output/LEGENDA.txt || echo "Previsão do tempo — Previsão RJ" > output/LEGENDA.txt
+          fi
+      - name: Publicar
+        env:
+          VIDEO_URL: ${{ inputs.video_url }}
+          KEY: ${{ inputs.dedupe_key }}
+          TIPO: ${{ inputs.tipo }}
+        run: |
+          python -m src.previsao_rj.publish.facebook --kind "$TIPO" \
+            --video-url "$VIDEO_URL" --caption-file output/LEGENDA.txt --dedupe-key "$KEY"
+      - name: Persistir o estado do Facebook
+        if: always()
+        run: |
+          set -euo pipefail
+          test -f data/facebook_publicacoes.json || exit 0
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/facebook_publicacoes.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Facebook: reenvio ${{ github.run_id }}"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && break; sleep 5; done

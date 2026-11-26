@@ -17,3 +17,8 @@ Variables (não secret):
 **Nunca reutilizar** tokens, IDs, app secret, webhook ou estado do Previsão Sul Fluminense.
 
 - `AUTOMATION_ENABLED=false` — segunda trava; só mudar para `true` depois do Reel manual real aprovado.
+
+## Facebook (Página Previsão RJ) — ver docs/FACEBOOK.md
+
+- Secrets: `FACEBOOK_PAGE_ID`, `FACEBOOK_PAGE_ACCESS_TOKEN` (token de Página, separado do token do Instagram).
+- Variables: `FACEBOOK_PUBLISH_ENABLED` (desligado por padrão), `FACEBOOK_REELS_ENABLED`, `FACEBOOK_STORIES_ENABLED`, `FACEBOOK_EXPECTED_PAGE`, `FACEBOOK_GRAPH_VERSION`.
