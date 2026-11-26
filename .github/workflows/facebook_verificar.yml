@@ -1,0 +1,59 @@
+name: Facebook — verificar credenciais (não publica)
+
+# Confere, SEM publicar nada, se os secrets do Facebook estão certos:
+#  - o token é de PÁGINA e pertence a FACEBOOK_PAGE_ID;
+#  - o nome da Página bate com FACEBOOK_EXPECTED_PAGE;
+#  - permissões necessárias e validade do token.
+# Nenhum token aparece no log.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FACEBOOK_GRAPH_VERSION: ${{ vars.FACEBOOK_GRAPH_VERSION || 'v25.0' }}
+      FACEBOOK_EXPECTED_PAGE: ${{ vars.FACEBOOK_EXPECTED_PAGE || 'Previsão RJ' }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q "requests>=2.32,<3"
+      - name: Verificar
+        run: |
+          python - <<'PY'
+          import datetime, os, sys
+          from src.previsao_rj.publish import facebook as fb
+
+          cfg = fb.Config()
+          cli = fb.Client(cfg)
+          page = cli.verify_destination()
+          print(f"OK destino: {page.get('name')} (@{page.get('username')}) id={page.get('id')}")
+
+          dbg = cli.get("debug_token", input_token=cfg.token).get("data", {})
+          tipo = dbg.get("type")
+          scopes = set(dbg.get("scopes") or [])
+          exp = dbg.get("expires_at") or 0
+          validade = "nunca expira" if not exp else datetime.datetime.fromtimestamp(exp).isoformat()
+          print(f"tipo do token: {tipo}; válido: {dbg.get('is_valid')}; validade: {validade}")
+          faltando = {"pages_manage_posts", "pages_read_engagement", "pages_show_list"} - scopes
+          print("permissões:", ", ".join(sorted(scopes)))
+          erros = []
+          if tipo != "PAGE": erros.append("o token não é de Página")
+          if faltando: erros.append("faltam permissões: " + ", ".join(sorted(faltando)))
+          if exp: erros.append("o token expira (use o token de Página tirado do token de usuário de longa duração)")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as s:
+              s.write(f"### Facebook: {page.get('name')}\n- tipo: `{tipo}`\n- validade: {validade}\n"
+                      f"- permissões: {', '.join(sorted(scopes))}\n")
+              s.write("\n**Tudo certo.**\n" if not erros else "\n**Problemas:** " + "; ".join(erros) + "\n")
+          if erros:
+              print("PROBLEMAS:", "; ".join(erros)); sys.exit(1)
+          print("Tudo certo — nada foi publicado.")
+          PY
