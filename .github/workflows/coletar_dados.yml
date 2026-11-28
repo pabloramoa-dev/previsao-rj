@@ -64,7 +64,7 @@ jobs:
           print("|---|---|---|---|---|---|")
           for e in d['forecast']['today']['locations']:
               w = e['rain_window']
-              janela = f"{w['start']}–{w['end']} (pico {w['peak_probability_pct']}%)" if w else "—"
+              janela = (f"{w['start']}–{w['end']} (pico " + (f"{w['peak_probability_pct']}%" if 'peak_probability_pct' in w else f"{w.get('peak_mm', '?')} mm/h") + ")") if w else "—"
               print(f"| {e['name']} | {e['zone']} | {e['min_c']}° | {e['max_c']}° | "
                     f"{e['rain_probability_pct']}% | {janela} |")
           print("\n### Fontes\n")
