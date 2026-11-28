@@ -61,11 +61,7 @@ def gancho_rotativo(locs, data, quando, *, ancora=None, canal=""):
     except (ValueError, TypeError):
         dia = date.today()
     noite = quando == "amanhã"
-    # Referência editorial de novembro: preservar a abertura simples da noite.
-    # Alertas meteorológicos graves continuam prioritários nos chamadores.
-    if noite:
-        return "Amanhã, o tempo no Rio fica assim."
-
+    # Ambos os turnos usam rodízio localizado; alertas graves têm prioridade no chamador.
     pub = dia - timedelta(days=int(noite))
     fase = sum(ord(ch) for ch in canal) % 12
     slot = pub.toordinal() * 2 + int(noite) + fase
