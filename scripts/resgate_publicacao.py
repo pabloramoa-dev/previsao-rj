@@ -108,17 +108,17 @@ def fila_remota(repo: str) -> list[dict]:
 
 
 # ---- Adaptadores: cada canal registra a publicação de um jeito -------------
-# ADAPTADOR=fila (padrão): data/editorial_queue.json (RS, PR, MG, RJ, modelo)
-# ADAPTADOR=bsb: data/publicacoes.json {"AAAA-MM-DD:turno": {status, media_id}}
-# ADAPTADOR=sulflu: data/registro_formatos.json [{quando, media_id, publicado_em_utc}]
-# ADAPTADOR=otemposp: data/instagram/<data da previsão>-<hoje|amanhã>-REELS.json
+# ADAPTADOR=fila (padrão): data/editorial_queue.json
+# ADAPTADOR=turnos_por_data: data/publicacoes.json {"AAAA-MM-DD:turno": {status, media_id}}
+# ADAPTADOR=registro_formatos: data/registro_formatos.json [{quando, media_id, publicado_em_utc}]
+# ADAPTADOR=arquivo_por_edicao: data/instagram/<data da previsão>-<hoje|amanhã>-REELS.json
 
-def _publicado_bsb(registro, turno, dia):
+def _publicado_turnos_por_data(registro, turno, dia):
     item = (registro or {}).get(f"{dia}:{turno}") or {}
     return item if item.get("status") == "publicado" and item.get("media_id") else None
 
 
-def _publicado_sulflu(registro, turno, dia):
+def _publicado_registro_formatos(registro, turno, dia):
     quando = "hoje" if turno == "manha" else "amanhã"
     for item in reversed(registro or []):
         em = item.get("publicado_em_utc")
@@ -129,23 +129,23 @@ def _publicado_sulflu(registro, turno, dia):
     return None
 
 
-def _publicado_otemposp(registro, turno, dia):
+def _publicado_arquivo_por_edicao(registro, turno, dia):
     item = registro or {}
     return item if item.get("published") and item.get("media_id") else None
 
 
 def publicado_no_canal(repo: str, turno: str, dia: str) -> dict | None:
     adaptador = os.environ.get("ADAPTADOR", "fila")
-    if adaptador == "bsb":
-        return _publicado_bsb(_ler_remoto(repo, "data/publicacoes.json"), turno, dia)
-    if adaptador == "sulflu":
-        return _publicado_sulflu(_ler_remoto(repo, "data/registro_formatos.json"), turno, dia)
-    if adaptador == "otemposp":
+    if adaptador == "turnos_por_data":
+        return _publicado_turnos_por_data(_ler_remoto(repo, "data/publicacoes.json"), turno, dia)
+    if adaptador == "registro_formatos":
+        return _publicado_registro_formatos(_ler_remoto(repo, "data/registro_formatos.json"), turno, dia)
+    if adaptador == "arquivo_por_edicao":
         from datetime import timedelta
         alvo = date_from(dia) + timedelta(days=0 if turno == "manha" else 1)
         quando = "hoje" if turno == "manha" else "amanhã"
         caminho = urllib_quote(f"data/instagram/{alvo.isoformat()}-{quando}-REELS.json")
-        return _publicado_otemposp(_ler_remoto(repo, caminho), turno, dia)
+        return _publicado_arquivo_por_edicao(_ler_remoto(repo, caminho), turno, dia)
     return publicado(fila_remota(repo), turno, dia)
 
 
@@ -164,7 +164,7 @@ def workflow_do_turno(turno: str) -> str:
 
 
 def campos_extras(turno: str) -> list[str]:
-    """Entradas extras do disparo, ex.: DISPATCH_NOITE="turno=amanhã" no SP."""
+    """Entradas extras do disparo, ex.: DISPATCH_NOITE="turno=amanhã"."""
     bruto = os.environ.get("DISPATCH_MANHA" if turno == "manha" else "DISPATCH_NOITE", "")
     args = []
     for par in filter(None, (x.strip() for x in bruto.split(";"))):

@@ -108,26 +108,26 @@ def test_janela_configuravel_por_canal(monkeypatch):
 
 # ---- adaptadores de outros canais -----------------------------------------
 
-def test_adaptador_bsb():
+def test_adaptador_turnos_por_data():
     reg = {"2026-11-27:noite": {"status": "publicado", "media_id": "9"},
            "2026-11-27:manha": {"status": "erro", "media_id": None}}
-    assert R._publicado_bsb(reg, "noite", "2026-11-27")["media_id"] == "9"
-    assert R._publicado_bsb(reg, "manha", "2026-11-27") is None
-    assert R._publicado_bsb(None, "manha", "2026-11-27") is None
+    assert R._publicado_turnos_por_data(reg, "noite", "2026-11-27")["media_id"] == "9"
+    assert R._publicado_turnos_por_data(reg, "manha", "2026-11-27") is None
+    assert R._publicado_turnos_por_data(None, "manha", "2026-11-27") is None
 
 
-def test_adaptador_sulflu_converte_utc_para_brasilia():
+def test_adaptador_registro_formatos_converte_utc_para_brasilia():
     reg = [{"quando": "amanhã", "media_id": "7", "publicado_em_utc": "2026-11-27T21:01:30+00:00"},
            {"quando": "hoje", "media_id": "6", "publicado_em_utc": "2026-11-28T02:30:00+00:00"}]
-    assert R._publicado_sulflu(reg, "noite", "2026-11-27")["media_id"] == "7"
+    assert R._publicado_registro_formatos(reg, "noite", "2026-11-27")["media_id"] == "7"
     # 02:30 UTC de 28/11 = 23:30 BRT de 27/11: conta para o dia 27.
-    assert R._publicado_sulflu(reg, "manha", "2026-11-27")["media_id"] == "6"
-    assert R._publicado_sulflu(reg, "manha", "2026-11-28") is None
+    assert R._publicado_registro_formatos(reg, "manha", "2026-11-27")["media_id"] == "6"
+    assert R._publicado_registro_formatos(reg, "manha", "2026-11-28") is None
 
 
-def test_adaptador_otemposp_usa_data_da_previsao(monkeypatch):
+def test_adaptador_arquivo_por_edicao_usa_data_da_previsao(monkeypatch):
     lidos = []
-    monkeypatch.setenv("ADAPTADOR", "otemposp")
+    monkeypatch.setenv("ADAPTADOR", "arquivo_por_edicao")
     monkeypatch.setattr(R, "_ler_remoto", lambda repo, c: lidos.append(c) or {"published": True, "media_id": "5"})
     assert R.publicado_no_canal("x/y", "noite", "2026-11-27")["media_id"] == "5"
     assert R.publicado_no_canal("x/y", "manha", "2026-11-27")["media_id"] == "5"
