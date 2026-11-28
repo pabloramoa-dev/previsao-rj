@@ -92,11 +92,84 @@ def _gh(*args: str) -> str:
     return subprocess.run(["gh", *args], check=True, capture_output=True, text=True).stdout
 
 
+def _ler_remoto(repo: str, caminho: str):
+    """JSON da ponta da main, ou None se o arquivo não existe."""
+    try:
+        bruto = _gh("api", f"repos/{repo}/contents/{caminho}?ref=main",
+                    "-H", "Accept: application/vnd.github.raw")
+    except subprocess.CalledProcessError:
+        return None
+    return json.loads(bruto)
+
+
 def fila_remota(repo: str) -> list[dict]:
     """Fila da ponta da main (a execução do Reel persiste nela)."""
-    bruto = _gh("api", f"repos/{repo}/contents/{FILA.as_posix()}?ref=main",
-                "-H", "Accept: application/vnd.github.raw")
-    return json.loads(bruto)
+    return _ler_remoto(repo, FILA.as_posix()) or []
+
+
+# ---- Adaptadores: cada canal registra a publicação de um jeito -------------
+# ADAPTADOR=fila (padrão): data/editorial_queue.json (RS, PR, MG, RJ, modelo)
+# ADAPTADOR=bsb: data/publicacoes.json {"AAAA-MM-DD:turno": {status, media_id}}
+# ADAPTADOR=sulflu: data/registro_formatos.json [{quando, media_id, publicado_em_utc}]
+# ADAPTADOR=otemposp: data/instagram/<data da previsão>-<hoje|amanhã>-REELS.json
+
+def _publicado_bsb(registro, turno, dia):
+    item = (registro or {}).get(f"{dia}:{turno}") or {}
+    return item if item.get("status") == "publicado" and item.get("media_id") else None
+
+
+def _publicado_sulflu(registro, turno, dia):
+    quando = "hoje" if turno == "manha" else "amanhã"
+    for item in reversed(registro or []):
+        em = item.get("publicado_em_utc")
+        if not (item.get("media_id") and em and item.get("quando") == quando):
+            continue
+        if datetime.fromisoformat(em.replace("Z", "+00:00")).astimezone(FUSO).date().isoformat() == dia:
+            return item
+    return None
+
+
+def _publicado_otemposp(registro, turno, dia):
+    item = registro or {}
+    return item if item.get("published") and item.get("media_id") else None
+
+
+def publicado_no_canal(repo: str, turno: str, dia: str) -> dict | None:
+    adaptador = os.environ.get("ADAPTADOR", "fila")
+    if adaptador == "bsb":
+        return _publicado_bsb(_ler_remoto(repo, "data/publicacoes.json"), turno, dia)
+    if adaptador == "sulflu":
+        return _publicado_sulflu(_ler_remoto(repo, "data/registro_formatos.json"), turno, dia)
+    if adaptador == "otemposp":
+        from datetime import timedelta
+        alvo = date_from(dia) + timedelta(days=0 if turno == "manha" else 1)
+        quando = "hoje" if turno == "manha" else "amanhã"
+        caminho = urllib_quote(f"data/instagram/{alvo.isoformat()}-{quando}-REELS.json")
+        return _publicado_otemposp(_ler_remoto(repo, caminho), turno, dia)
+    return publicado(fila_remota(repo), turno, dia)
+
+
+def date_from(dia: str):
+    from datetime import date
+    return date.fromisoformat(dia)
+
+
+def urllib_quote(caminho: str) -> str:
+    from urllib.parse import quote
+    return quote(caminho)
+
+
+def workflow_do_turno(turno: str) -> str:
+    return os.environ.get("WORKFLOW_MANHA" if turno == "manha" else "WORKFLOW_NOITE") or WORKFLOW[turno]
+
+
+def campos_extras(turno: str) -> list[str]:
+    """Entradas extras do disparo, ex.: DISPATCH_NOITE="turno=amanhã" no SP."""
+    bruto = os.environ.get("DISPATCH_MANHA" if turno == "manha" else "DISPATCH_NOITE", "")
+    args = []
+    for par in filter(None, (x.strip() for x in bruto.split(";"))):
+        args += ["-f", par]
+    return args
 
 
 def tentativas_hoje(repo: str, workflow: str, dia: str) -> int:
@@ -129,13 +202,13 @@ def acompanhar(repo: str, run: dict, limite_s: int = 70 * 60) -> dict:
     raise SystemExit(f"::error::execução {run['html_url']} não terminou em {limite_s // 60} min")
 
 
-def disparar_e_acompanhar(repo: str, workflow: str, limite_s: int = 70 * 60) -> dict:
+def disparar_e_acompanhar(repo: str, workflow: str, limite_s: int = 70 * 60, extras: list[str] | None = None) -> dict:
     # Já há uma execução do turno rodando: acompanhar essa, nunca abrir outra.
     atual = em_andamento(repo, workflow)
     if atual:
         return acompanhar(repo, atual, limite_s)
     inicio = datetime.now(tz=FUSO)
-    _gh("workflow", "run", workflow, "--repo", repo, "--ref", "main", "-f", "publicar=true")
+    _gh("workflow", "run", workflow, "--repo", repo, "--ref", "main", "-f", "publicar=true", *(extras or []))
     run = None
     for _ in range(30):  # até ~5 min para a execução aparecer
         time.sleep(10)
@@ -174,12 +247,12 @@ def main(argv: list[str] | None = None) -> int:
         # Cron entregue fora da janela é falha do agendador: avisa em vermelho.
         return 1 if a.evento == "schedule" else 0
 
-    ja = publicado(fila_remota(a.repo), turno, dia)
+    ja = publicado_no_canal(a.repo, turno, dia)
     if ja:
         resumo(f"### Turno {turno} de {dia} já publicado\n\n- media_id: `{ja['media_id']}`\n- formato: `{ja.get('format')}`")
         return 0
 
-    workflow = WORKFLOW[turno]
+    workflow = workflow_do_turno(turno)
     feitas = tentativas_hoje(a.repo, workflow, dia)
     if feitas >= MAX_TENTATIVAS and not em_andamento(a.repo, workflow):
         resumo(f"### Resgate bloqueado\n\n{feitas} tentativas manuais/resgate de `{workflow}` hoje "
@@ -188,8 +261,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     resumo(f"### Resgate do turno {turno} ({motivo})\n\nDisparando `{workflow}` com publicar=true.")
-    run = disparar_e_acompanhar(a.repo, workflow)
-    novo = publicado(fila_remota(a.repo), turno, dia)
+    run = disparar_e_acompanhar(a.repo, workflow, extras=campos_extras(turno))
+    novo = publicado_no_canal(a.repo, turno, dia)
     if novo:
         resumo(f"- execução: {run['html_url']} ({run['conclusion']})\n- **media_id confirmado:** `{novo['media_id']}`")
         return 0

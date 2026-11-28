@@ -67,7 +67,7 @@ def test_publicado_exige_media_id_status_dia_e_turno():
 def test_ja_publicado_nao_dispara(monkeypatch):
     chamadas = []
     monkeypatch.setattr(R, "fila_remota", lambda repo: FILA)
-    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a: chamadas.append(a))
+    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a, **k: chamadas.append(a))
     monkeypatch.setattr(R, "datetime", type("D", (), {"now": staticmethod(lambda tz=None: em(21, 59))}))
     assert R.main(["--repo", "x/y", "--evento", "workflow_dispatch"]) == 0
     assert chamadas == []
@@ -76,7 +76,7 @@ def test_ja_publicado_nao_dispara(monkeypatch):
 def test_sem_media_id_depois_do_disparo_fica_vermelho(monkeypatch):
     monkeypatch.setattr(R, "fila_remota", lambda repo: FILA[:1])
     monkeypatch.setattr(R, "tentativas_hoje", lambda *a: 0)
-    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a: {"html_url": "u", "conclusion": "success"})
+    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a, **k: {"html_url": "u", "conclusion": "success"})
     monkeypatch.setattr(R, "datetime", type("D", (), {"now": staticmethod(lambda tz=None: em(19, 15))}))
     assert R.main(["--repo", "x/y", "--evento", "workflow_dispatch"]) == 1
 
@@ -85,7 +85,7 @@ def test_limite_de_tentativas(monkeypatch):
     monkeypatch.setattr(R, "fila_remota", lambda repo: [])
     monkeypatch.setattr(R, "tentativas_hoje", lambda *a: R.MAX_TENTATIVAS)
     monkeypatch.setattr(R, "em_andamento", lambda *a: None)
-    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a: pytest.fail("não deveria disparar"))
+    monkeypatch.setattr(R, "disparar_e_acompanhar", lambda *a, **k: pytest.fail("não deveria disparar"))
     monkeypatch.setattr(R, "datetime", type("D", (), {"now": staticmethod(lambda tz=None: em(19, 15))}))
     assert R.main(["--repo", "x/y", "--evento", "workflow_dispatch"]) == 1
 
@@ -104,3 +104,41 @@ def test_janela_configuravel_por_canal(monkeypatch):
         monkeypatch.delenv("JANELA_MANHA")
         monkeypatch.delenv("JANELA_NOITE")
         importlib.reload(R)
+
+
+# ---- adaptadores de outros canais -----------------------------------------
+
+def test_adaptador_bsb():
+    reg = {"2026-11-27:noite": {"status": "publicado", "media_id": "9"},
+           "2026-11-27:manha": {"status": "erro", "media_id": None}}
+    assert R._publicado_bsb(reg, "noite", "2026-11-27")["media_id"] == "9"
+    assert R._publicado_bsb(reg, "manha", "2026-11-27") is None
+    assert R._publicado_bsb(None, "manha", "2026-11-27") is None
+
+
+def test_adaptador_sulflu_converte_utc_para_brasilia():
+    reg = [{"quando": "amanhã", "media_id": "7", "publicado_em_utc": "2026-11-27T21:01:30+00:00"},
+           {"quando": "hoje", "media_id": "6", "publicado_em_utc": "2026-11-28T02:30:00+00:00"}]
+    assert R._publicado_sulflu(reg, "noite", "2026-11-27")["media_id"] == "7"
+    # 02:30 UTC de 28/11 = 23:30 BRT de 27/11: conta para o dia 27.
+    assert R._publicado_sulflu(reg, "manha", "2026-11-27")["media_id"] == "6"
+    assert R._publicado_sulflu(reg, "manha", "2026-11-28") is None
+
+
+def test_adaptador_otemposp_usa_data_da_previsao(monkeypatch):
+    lidos = []
+    monkeypatch.setenv("ADAPTADOR", "otemposp")
+    monkeypatch.setattr(R, "_ler_remoto", lambda repo, c: lidos.append(c) or {"published": True, "media_id": "5"})
+    assert R.publicado_no_canal("x/y", "noite", "2026-11-27")["media_id"] == "5"
+    assert R.publicado_no_canal("x/y", "manha", "2026-11-27")["media_id"] == "5"
+    assert "2026-11-28-amanh%C3%A3-REELS.json" in lidos[0]
+    assert lidos[1].endswith("2026-11-27-hoje-REELS.json")
+
+
+def test_workflow_e_campos_por_canal(monkeypatch):
+    monkeypatch.setenv("WORKFLOW_NOITE", "reels.yml")
+    monkeypatch.setenv("DISPATCH_NOITE", "turno=amanhã")
+    assert R.workflow_do_turno("noite") == "reels.yml"
+    assert R.workflow_do_turno("manha") == "reel_manha.yml"
+    assert R.campos_extras("noite") == ["-f", "turno=amanhã"]
+    assert R.campos_extras("manha") == []
