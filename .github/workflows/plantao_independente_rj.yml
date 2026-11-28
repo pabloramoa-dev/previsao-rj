@@ -75,6 +75,7 @@ jobs:
         id: publicar
         if: steps.release.outcome == 'success'
         env:
+          GH_TOKEN: ${{ github.token }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: python -m plantao_rj.publicar --url "${{ steps.release.outputs.url }}"
