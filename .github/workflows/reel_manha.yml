@@ -142,6 +142,13 @@ jobs:
                   f'- media_id: `{ja[-1].get("media_id")}`\n\n'
                   'Esta tentativa de cron encerrou sem falar com a Meta.\n',
                   encoding='utf-8')
+          # Verde aqui escondia turno sem Reel (run 46086779250): sem publicação
+          # do turno e fora do prazo, o workflow fica VERMELHO. A trava continua
+          # impedindo a publicação vencida; só o status muda.
+          if atrasado and not ja:
+              print('::error::Turno sem Reel publicado e disparo depois do prazo. '
+                    'Verificar a execução principal e o agendador externo.')
+              raise SystemExit(1)
           PY
 
   reel:
